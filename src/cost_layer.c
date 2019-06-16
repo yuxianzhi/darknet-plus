@@ -41,7 +41,7 @@ char *get_cost_string(COST_TYPE a)
 cost_layer make_cost_layer(int batch, int inputs, COST_TYPE cost_type, float scale)
 {
     fprintf(stderr, "cost                                           %4d\n",  inputs);
-    cost_layer l = {0};
+    cost_layer l;
     l.type = COST;
 
     l.scale = scale;
@@ -49,9 +49,9 @@ cost_layer make_cost_layer(int batch, int inputs, COST_TYPE cost_type, float sca
     l.inputs = inputs;
     l.outputs = inputs;
     l.cost_type = cost_type;
-    l.delta = calloc(inputs*batch, sizeof(float));
-    l.output = calloc(inputs*batch, sizeof(float));
-    l.cost = calloc(1, sizeof(float));
+    l.delta = (float *)calloc(inputs*batch, sizeof(float));
+    l.output = (float *)calloc(inputs*batch, sizeof(float));
+    l.cost = (float *)calloc(1, sizeof(float));
 
     l.forward = forward_cost_layer;
     l.backward = backward_cost_layer;
@@ -59,8 +59,8 @@ cost_layer make_cost_layer(int batch, int inputs, COST_TYPE cost_type, float sca
     l.forward_gpu = forward_cost_layer_gpu;
     l.backward_gpu = backward_cost_layer_gpu;
 
-    l.delta_gpu = cuda_make_array(l.output, inputs*batch);
-    l.output_gpu = cuda_make_array(l.delta, inputs*batch);
+    l.delta_gpu = hip_make_array(l.output, inputs*batch);
+    l.output_gpu = hip_make_array(l.delta, inputs*batch);
     #endif
     return l;
 }
@@ -69,13 +69,13 @@ void resize_cost_layer(cost_layer *l, int inputs)
 {
     l->inputs = inputs;
     l->outputs = inputs;
-    l->delta = realloc(l->delta, inputs*l->batch*sizeof(float));
-    l->output = realloc(l->output, inputs*l->batch*sizeof(float));
+    l->delta = (float *)realloc(l->delta, inputs*l->batch*sizeof(float));
+    l->output = (float *)realloc(l->output, inputs*l->batch*sizeof(float));
 #ifdef GPU
-    cuda_free(l->delta_gpu);
-    cuda_free(l->output_gpu);
-    l->delta_gpu = cuda_make_array(l->delta, inputs*l->batch);
-    l->output_gpu = cuda_make_array(l->output, inputs*l->batch);
+    hip_free(l->delta_gpu);
+    hip_free(l->output_gpu);
+    l->delta_gpu = hip_make_array(l->delta, inputs*l->batch);
+    l->output_gpu = hip_make_array(l->output, inputs*l->batch);
 #endif
 }
 
@@ -107,12 +107,12 @@ void backward_cost_layer(const cost_layer l, network net)
 
 void pull_cost_layer(cost_layer l)
 {
-    cuda_pull_array(l.delta_gpu, l.delta, l.batch*l.inputs);
+    hip_pull_array(l.delta_gpu, l.delta, l.batch*l.inputs);
 }
 
 void push_cost_layer(cost_layer l)
 {
-    cuda_push_array(l.delta_gpu, l.delta, l.batch*l.inputs);
+    hip_push_array(l.delta_gpu, l.delta, l.batch*l.inputs);
 }
 
 int float_abs_compare (const void * a, const void * b)
@@ -151,7 +151,7 @@ void forward_cost_layer_gpu(cost_layer l, network net)
     }
 
     if(l.ratio){
-        cuda_pull_array(l.delta_gpu, l.delta, l.batch*l.inputs);
+        hip_pull_array(l.delta_gpu, l.delta, l.batch*l.inputs);
         qsort(l.delta, l.batch*l.inputs, sizeof(float), float_abs_compare);
         int n = (1-l.ratio) * l.batch*l.inputs;
         float thresh = l.delta[n];
@@ -164,7 +164,7 @@ void forward_cost_layer_gpu(cost_layer l, network net)
         supp_gpu(l.batch*l.inputs, l.thresh*1./l.inputs, l.delta_gpu, 1);
     }
 
-    cuda_pull_array(l.output_gpu, l.output, l.batch*l.inputs);
+    hip_pull_array(l.output_gpu, l.output, l.batch*l.inputs);
     l.cost[0] = sum_array(l.output, l.batch*l.inputs);
 }
 

@@ -59,19 +59,19 @@ void train_lsd3(char *fcfg, char *fweight, char *gcfg, char *gweight, char *acfg
     fnet->train=1;
     int x_size = fnet->inputs*fnet->batch;
     int y_size = fnet->truths*fnet->batch;
-    float *X = calloc(x_size, sizeof(float));
-    float *y = calloc(y_size, sizeof(float));
+    float *X = (float *)calloc(x_size, sizeof(float));
+    float *y = (float *)calloc(y_size, sizeof(float));
 
 
     int ax_size = anet->inputs*anet->batch;
     int ay_size = anet->truths*anet->batch;
     fill_gpu(ay_size, .9, anet->truth_gpu, 1);
-    anet->delta_gpu = cuda_make_array(0, ax_size);
+    anet->delta_gpu = hip_make_array(0, ax_size);
     anet->train = 1;
 
     int gx_size = gnet->inputs*gnet->batch;
     int gy_size = gnet->truths*gnet->batch;
-    gstate.input = cuda_make_array(0, gx_size);
+    gstate.input = hip_make_array(0, gx_size);
     gstate.truth = 0;
     gstate.delta = 0;
     gstate.train = 1;
@@ -97,8 +97,8 @@ void train_lsd3(char *fcfg, char *fweight, char *gcfg, char *gweight, char *acfg
             layer imlayer = gnet->layers[gnet->n - 1];
             get_next_batch(train, fnet->batch, j*fnet->batch, X, y);
 
-            cuda_push_array(fstate.input, X, x_size);
-            cuda_push_array(gstate.input, X, gx_size);
+            hip_push_array(fstate.input, X, x_size);
+            hip_push_array(gstate.input, X, gx_size);
             *gnet->seen += gnet->batch;
 
             forward_network_gpu(fnet, fstate);
@@ -127,18 +127,18 @@ void train_lsd3(char *fcfg, char *fweight, char *gcfg, char *gweight, char *acfg
             axpy_gpu(x_size, 1, astate.delta, 1, delta, 1);
 
             //fill_gpu(x_size, 0, delta, 1);
-            //cuda_push_array(delta, X, x_size);
+            //hip_push_array(delta, X, x_size);
             //axpy_gpu(x_size, -1, imlayer.output_gpu, 1, delta, 1);
-            //printf("pix error: %f\n", cuda_mag_array(delta, x_size));
-            printf("fea error: %f\n", cuda_mag_array(fstate.delta, x_size));
-            printf("adv error: %f\n", cuda_mag_array(astate.delta, x_size));
+            //printf("pix error: %f\n", hip_mag_array(delta, x_size));
+            printf("fea error: %f\n", hip_mag_array(fstate.delta, x_size));
+            printf("adv error: %f\n", hip_mag_array(astate.delta, x_size));
             //axpy_gpu(x_size, 1, astate.delta, 1, delta, 1);
 
             backward_network_gpu(gnet, gstate);
 
             floss += get_network_cost(fnet) /(fnet->subdivisions*fnet->batch);
 
-            cuda_pull_array(imlayer.output_gpu, imlayer.output, imlayer.outputs*imlayer.batch);
+            hip_pull_array(imlayer.output_gpu, imlayer.output, imlayer.outputs*imlayer.batch);
             for(k = 0; k < gnet->batch; ++k){
                 int index = j*gnet->batch + k;
                 copy_cpu(imlayer.outputs, imlayer.output + k*imlayer.outputs, 1, generated.X.vals[index], 1);
@@ -208,7 +208,7 @@ void train_pix2pix(char *cfg, char *weight, char *acfg, char *aweight, int clear
     network anet = load_network(acfg, aweight, clear);
 
     int i, j, k;
-    layer imlayer = {0};
+    layer imlayer;
     for (i = 0; i < net->n; ++i) {
         if (net->layers[i].out_c == 3) {
             imlayer = net->layers[i];
@@ -226,7 +226,7 @@ void train_pix2pix(char *cfg, char *weight, char *acfg, char *aweight, int clear
     //int N = plist->size;
     char **paths = (char **)list_to_array(plist);
 
-    load_args args = {0};
+    load_args args;
     args.w = net->w;
     args.h = net->h;
     args.paths = paths;
@@ -250,20 +250,20 @@ void train_pix2pix(char *cfg, char *weight, char *acfg, char *aweight, int clear
     pthread_t load_thread = load_data_in_thread(args);
     clock_t time;
 
-    network_state gstate = {0};
+    network_state gstate;
     gstate.index = 0;
     gstate.net = net;
     int x_size = get_network_input_size(net)*net->batch;
     int y_size = x_size;
-    gstate.input = cuda_make_array(0, x_size);
-    gstate.truth = cuda_make_array(0, y_size);
+    gstate.input = hip_make_array(0, x_size);
+    gstate.truth = hip_make_array(0, y_size);
     gstate.delta = 0;
     gstate.train = 1;
-    float *pixs = calloc(x_size, sizeof(float));
-    float *graypixs = calloc(x_size, sizeof(float));
-    float *y = calloc(y_size, sizeof(float));
+    float *pixs = (float *)calloc(x_size, sizeof(float));
+    float *graypixs = (float *)calloc(x_size, sizeof(float));
+    float *y = (float *)calloc(y_size, sizeof(float));
 
-    network_state astate = {0};
+    network_state astate;
     astate.index = 0;
     astate.net = anet;
     int ay_size = get_network_output_size(anet)*anet->batch;
@@ -272,8 +272,8 @@ void train_pix2pix(char *cfg, char *weight, char *acfg, char *aweight, int clear
     astate.delta = 0;
     astate.train = 1;
 
-    float *imerror = cuda_make_array(0, imlayer.outputs);
-    float *ones_gpu = cuda_make_array(0, ay_size);
+    float *imerror = hip_make_array(0, imlayer.outputs);
+    float *ones_gpu = hip_make_array(0, ay_size);
     fill_gpu(ay_size, .9, ones_gpu, 1);
 
     float aloss_avg = -1;
@@ -305,8 +305,8 @@ void train_pix2pix(char *cfg, char *weight, char *acfg, char *aweight, int clear
         for(j = 0; j < net->subdivisions; ++j){
             get_next_batch(train, net->batch, j*net->batch, pixs, y);
             get_next_batch(gray, net->batch, j*net->batch, graypixs, y);
-            cuda_push_array(gstate.input, graypixs, x_size);
-            cuda_push_array(gstate.truth, pixs, y_size);
+            hip_push_array(gstate.input, graypixs, x_size);
+            hip_push_array(gstate.truth, pixs, y_size);
             */
             /*
             image origi = float_to_image(net->w, net->h, 3, pixs);
@@ -332,14 +332,14 @@ void train_pix2pix(char *cfg, char *weight, char *acfg, char *aweight, int clear
 
             scal_gpu(imlayer.outputs, 1000, imerror, 1);
 
-            printf("realness %f\n", cuda_mag_array(imerror, imlayer.outputs));
-            printf("features %f\n", cuda_mag_array(net->layers[net->n-1].delta_gpu, imlayer.outputs));
+            printf("realness %f\n", hip_mag_array(imerror, imlayer.outputs));
+            printf("features %f\n", hip_mag_array(net->layers[net->n-1].delta_gpu, imlayer.outputs));
 
             axpy_gpu(imlayer.outputs, 1, imerror, 1, imlayer.delta_gpu, 1);
 
             gloss += get_network_cost(net) /(net->subdivisions*net->batch);
 
-            cuda_pull_array(imlayer.output_gpu, imlayer.output, imlayer.outputs*imlayer.batch);
+            hip_pull_array(imlayer.output_gpu, imlayer.output, imlayer.outputs*imlayer.batch);
             for(k = 0; k < net->batch; ++k){
                 int index = j*net->batch + k;
                 copy_cpu(imlayer.outputs, imlayer.output + k*imlayer.outputs, 1, gray.X.vals[index], 1);
@@ -555,7 +555,7 @@ void train_prog(char *cfg, char *weight, char *acfg, char *aweight, int clear, i
 
     int x_size = gnet->inputs*gnet->batch;
     int y_size = gnet->truths*gnet->batch;
-    float *imerror = cuda_make_array(0, y_size);
+    float *imerror = hip_make_array(0, y_size);
 
     float aloss_avg = -1;
 
@@ -682,7 +682,7 @@ void train_dcgan(char *cfg, char *weight, char *acfg, char *aweight, int clear, 
     //float orig_rate = anet->learning_rate;
 
     int i, j, k;
-    layer imlayer = {0};
+    layer imlayer;
     for (i = 0; i < gnet->n; ++i) {
         if (gnet->layers[i].out_c == 3) {
             imlayer = gnet->layers[i];
@@ -719,7 +719,7 @@ void train_dcgan(char *cfg, char *weight, char *acfg, char *aweight, int clear, 
 
     int x_size = gnet->inputs*gnet->batch;
     int y_size = gnet->truths*gnet->batch;
-    float *imerror = cuda_make_array(0, y_size);
+    float *imerror = hip_make_array(0, y_size);
 
     //int ay_size = anet->truths*anet->batch;
 
@@ -766,8 +766,8 @@ void train_dcgan(char *cfg, char *weight, char *acfg, char *aweight, int clear, 
                printf("input: %f %f\n", mean_array(gnet->input, x_size), variance_array(gnet->input, x_size));
              */
 
-            //cuda_push_array(gnet->input_gpu, gnet->input, x_size);
-            //cuda_push_array(gnet->truth_gpu, gnet->truth, y_size);
+            //hip_push_array(gnet->input_gpu, gnet->input, x_size);
+            //hip_push_array(gnet->truth_gpu, gnet->truth, y_size);
             *gnet->seen += gnet->batch;
             forward_network(gnet);
 
@@ -784,8 +784,8 @@ void train_dcgan(char *cfg, char *weight, char *acfg, char *aweight, int clear, 
             scal_gpu(imlayer.outputs*imlayer.batch, 1, imerror, 1);
             scal_gpu(imlayer.outputs*imlayer.batch, 0, gnet->layers[gnet->n-1].delta_gpu, 1);
 
-            //printf("realness %f\n", cuda_mag_array(imerror, imlayer.outputs*imlayer.batch));
-            //printf("features %f\n", cuda_mag_array(gnet->layers[gnet->n-1].delta_gpu, imlayer.outputs*imlayer.batch));
+            //printf("realness %f\n", hip_mag_array(imerror, imlayer.outputs*imlayer.batch));
+            //printf("features %f\n", hip_mag_array(gnet->layers[gnet->n-1].delta_gpu, imlayer.outputs*imlayer.batch));
 
             axpy_gpu(imlayer.outputs*imlayer.batch, 1, imerror, 1, gnet->layers[gnet->n-1].delta_gpu, 1);
 
@@ -794,7 +794,7 @@ void train_dcgan(char *cfg, char *weight, char *acfg, char *aweight, int clear, 
             /*
                for(k = 0; k < gnet->n; ++k){
                layer l = gnet->layers[k];
-               cuda_pull_array(l.output_gpu, l.output, l.outputs*l.batch);
+               hip_pull_array(l.output_gpu, l.output, l.outputs*l.batch);
                printf("%d: %f %f\n", k, mean_array(l.output, l.outputs*l.batch), variance_array(l.output, l.outputs*l.batch));
                }
              */
@@ -878,7 +878,7 @@ void train_colorizer(char *cfg, char *weight, char *acfg, char *aweight, int cle
     network *anet = load_network(acfg, aweight, clear);
 
     int i, j, k;
-    layer imlayer = {0};
+    layer imlayer;
     for (i = 0; i < net->n; ++i) {
         if (net->layers[i].out_c == 3) {
             imlayer = net->layers[i];
@@ -914,15 +914,15 @@ void train_colorizer(char *cfg, char *weight, char *acfg, char *aweight, int cle
     //int y_size = x_size;
     net->delta = 0;
     net->train = 1;
-    float *pixs = calloc(x_size, sizeof(float));
-    float *graypixs = calloc(x_size, sizeof(float));
-    //float *y = calloc(y_size, sizeof(float));
+    float *pixs = (float *)calloc(x_size, sizeof(float));
+    float *graypixs = (float *)calloc(x_size, sizeof(float));
+    //float *y = (float *)calloc(y_size, sizeof(float));
 
     //int ay_size = anet->outputs*anet->batch;
     anet->delta = 0;
     anet->train = 1;
 
-    float *imerror = cuda_make_array(0, imlayer.outputs*imlayer.batch);
+    float *imerror = hip_make_array(0, imlayer.outputs*imlayer.batch);
 
     float aloss_avg = -1;
     float gloss_avg = -1;
@@ -951,8 +951,8 @@ void train_colorizer(char *cfg, char *weight, char *acfg, char *aweight, int cle
         for(j = 0; j < net->subdivisions; ++j){
             get_next_batch(train, net->batch, j*net->batch, pixs, 0);
             get_next_batch(gray, net->batch, j*net->batch, graypixs, 0);
-            cuda_push_array(net->input_gpu, graypixs, net->inputs*net->batch);
-            cuda_push_array(net->truth_gpu, pixs, net->truths*net->batch);
+            hip_push_array(net->input_gpu, graypixs, net->inputs*net->batch);
+            hip_push_array(net->truth_gpu, pixs, net->truths*net->batch);
             /*
                image origi = float_to_image(net->w, net->h, 3, pixs);
                image grayi = float_to_image(net->w, net->h, 3, graypixs);
@@ -974,8 +974,8 @@ void train_colorizer(char *cfg, char *weight, char *acfg, char *aweight, int cle
 
             scal_gpu(imlayer.outputs*imlayer.batch, 1, imerror, 1);
 
-            printf("realness %f\n", cuda_mag_array(imerror, imlayer.outputs*imlayer.batch));
-            printf("features %f\n", cuda_mag_array(net->layers[net->n-1].delta_gpu, imlayer.outputs*imlayer.batch));
+            printf("realness %f\n", hip_mag_array(imerror, imlayer.outputs*imlayer.batch));
+            printf("features %f\n", hip_mag_array(net->layers[net->n-1].delta_gpu, imlayer.outputs*imlayer.batch));
 
             axpy_gpu(imlayer.outputs*imlayer.batch, 1, imerror, 1, net->layers[net->n-1].delta_gpu, 1);
 
@@ -1057,7 +1057,7 @@ load_weights(&anet, aweightfile);
 if(clear) *anet->seen = 0;
 
 int i, j, k;
-layer imlayer = {0};
+layer imlayer;
 for (i = 0; i < net->n; ++i) {
 if (net->layers[i].out_c == 3) {
 imlayer = net->layers[i];
@@ -1075,7 +1075,7 @@ list *plist = get_paths(train_images);
 //int N = plist->size;
 char **paths = (char **)list_to_array(plist);
 
-load_args args = {0};
+load_args args;
 args.w = net->w;
 args.h = net->h;
 args.paths = paths;
@@ -1099,19 +1099,19 @@ args.labels = ls;
 pthread_t load_thread = load_data_in_thread(args);
 clock_t time;
 
-network_state gstate = {0};
+network_state gstate;
 gstate.index = 0;
 gstate.net = net;
 int x_size = get_network_input_size(net)*net->batch;
 int y_size = 1*net->batch;
-gstate.input = cuda_make_array(0, x_size);
+gstate.input = hip_make_array(0, x_size);
 gstate.truth = 0;
 gstate.delta = 0;
 gstate.train = 1;
-float *X = calloc(x_size, sizeof(float));
-float *y = calloc(y_size, sizeof(float));
+float *X = (float *)calloc(x_size, sizeof(float));
+float *y = (float *)calloc(y_size, sizeof(float));
 
-network_state astate = {0};
+network_state astate;
 astate.index = 0;
 astate.net = anet;
 int ay_size = get_network_output_size(anet)*anet->batch;
@@ -1120,8 +1120,8 @@ astate.truth = 0;
 astate.delta = 0;
 astate.train = 1;
 
-float *imerror = cuda_make_array(0, imlayer.outputs);
-float *ones_gpu = cuda_make_array(0, ay_size);
+float *imerror = hip_make_array(0, imlayer.outputs);
+float *ones_gpu = hip_make_array(0, ay_size);
 fill_gpu(ay_size, 1, ones_gpu, 1);
 
 float aloss_avg = -1;
@@ -1144,7 +1144,7 @@ while (get_current_batch(net) < net->max_batches) {
 
     for(j = 0; j < net->subdivisions; ++j){
         get_next_batch(train, net->batch, j*net->batch, X, y);
-        cuda_push_array(gstate.input, X, x_size);
+        hip_push_array(gstate.input, X, x_size);
         *net->seen += net->batch;
         forward_network_gpu(net, gstate);
 
@@ -1160,12 +1160,12 @@ while (get_current_batch(net) < net->max_batches) {
 
         backward_network_gpu(net, gstate);
 
-        printf("features %f\n", cuda_mag_array(imlayer.delta_gpu, imlayer.outputs));
-        printf("realness %f\n", cuda_mag_array(imerror, imlayer.outputs));
+        printf("features %f\n", hip_mag_array(imlayer.delta_gpu, imlayer.outputs));
+        printf("realness %f\n", hip_mag_array(imerror, imlayer.outputs));
 
         gloss += get_network_cost(net) /(net->subdivisions*net->batch);
 
-        cuda_pull_array(imlayer.output_gpu, imlayer.output, imlayer.outputs*imlayer.batch);
+        hip_pull_array(imlayer.output_gpu, imlayer.output, imlayer.outputs*imlayer.batch);
         for(k = 0; k < net->batch; ++k){
             int index = j*net->batch + k;
             copy_cpu(imlayer.outputs, imlayer.output + k*imlayer.outputs, 1, generated.X.vals[index], 1);
@@ -1234,7 +1234,7 @@ save_weights(net, buff);
 //int N = plist->size;
 char **paths = (char **)list_to_array(plist);
 
-load_args args = {0};
+load_args args;
 args.w = net->w;
 args.h = net->h;
 args.paths = paths;

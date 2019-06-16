@@ -90,7 +90,7 @@ void do_nms_sort(detection *dets, int total, int classes, float thresh)
 
 box float_to_box(float *f, int stride)
 {
-    box b = {0};
+    box b;
     b.x = f[0];
     b.y = f[1*stride];
     b.w = f[2*stride];
@@ -220,13 +220,14 @@ dbox dunion(box a, box b)
 
 void test_dunion()
 {
-    box a = {0, 0, 1, 1};
-    box dxa= {0+.0001, 0, 1, 1};
-    box dya= {0, 0+.0001, 1, 1};
-    box dwa= {0, 0, 1+.0001, 1};
-    box dha= {0, 0, 1, 1+.0001};
+    box a, dxa, dya, dwa, dha, b;
+    a.x   = 0,       a.y   = 0,       a.w = 1,         a.h = 1;
+    dxa.x = 0+.0001, dxa.y = 0,       dxa.w = 1,       dxa.h = 1;
+    dya.x = 0,       dya.y = 0+.0001, dya.w = 1,       dya.h = 1;
+    dwa.x = 0,       dwa.y = 0,       dwa.w = 1+.0001, dwa.h = 1;
+    dha.x = 0,       dha.y = 0,       dha.w = 1,       dha.h = 1+.0001;
 
-    box b = {.5, .5, .2, .2};
+    b.x = .5, b.y = .5, b.w = .2, b.h = .2;
     dbox di = dunion(a,b);
     printf("Union: %f %f %f %f\n", di.dx, di.dy, di.dw, di.dh);
     float inter =  box_union(a, b);
@@ -242,13 +243,14 @@ void test_dunion()
 }
 void test_dintersect()
 {
-    box a = {0, 0, 1, 1};
-    box dxa= {0+.0001, 0, 1, 1};
-    box dya= {0, 0+.0001, 1, 1};
-    box dwa= {0, 0, 1+.0001, 1};
-    box dha= {0, 0, 1, 1+.0001};
+    box a, dxa, dya, dwa, dha, b;
+    a.x   = 0,       a.y   = 0,       a.w = 1,         a.h = 1;
+    dxa.x = 0+.0001, dxa.y = 0,       dxa.w = 1,       dxa.h = 1;
+    dya.x = 0,       dya.y = 0+.0001, dya.w = 1,       dya.h = 1;
+    dwa.x = 0,       dwa.y = 0,       dwa.w = 1+.0001, dwa.h = 1;
+    dha.x = 0,       dha.y = 0,       dha.w = 1,       dha.h = 1+.0001;
 
-    box b = {.5, .5, .2, .2};
+    b.x = .5, b.y = .5, b.w = .2, b.h = .2;
     dbox di = dintersect(a,b);
     printf("Inter: %f %f %f %f\n", di.dx, di.dy, di.dw, di.dh);
     float inter =  box_intersection(a, b);
@@ -267,13 +269,14 @@ void test_box()
 {
     test_dintersect();
     test_dunion();
-    box a = {0, 0, 1, 1};
-    box dxa= {0+.00001, 0, 1, 1};
-    box dya= {0, 0+.00001, 1, 1};
-    box dwa= {0, 0, 1+.00001, 1};
-    box dha= {0, 0, 1, 1+.00001};
+    box a, dxa, dya, dwa, dha, b;
+    a.x   = 0,       a.y   = 0,       a.w = 1,         a.h = 1;
+    dxa.x = 0+.0001, dxa.y = 0,       dxa.w = 1,       dxa.h = 1;
+    dya.x = 0,       dya.y = 0+.0001, dya.w = 1,       dya.h = 1;
+    dwa.x = 0,       dwa.y = 0,       dwa.w = 1+.0001, dwa.h = 1;
+    dha.x = 0,       dha.y = 0,       dha.w = 1,       dha.h = 1+.0001;
 
-    box b = {.5, 0, .2, .2};
+    b.x = .5, b.y = 0, b.w = .2, b.h = .2;
 
     float iou = box_iou(a,b);
     iou = (1-iou)*(1-iou);

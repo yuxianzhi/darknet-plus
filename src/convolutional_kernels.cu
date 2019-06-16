@@ -1,8 +1,7 @@
-#include "cuda_runtime.h"
-#include "curand.h"
-#include "cublas_v2.h"
+#include <hip/hip_runtime.h>
+#include "rocrand/rocrand.h"
+#include "rocblas.h"
 
-extern "C" {
 #include "convolutional_layer.h"
 #include "batchnorm_layer.h"
 #include "gemm.h"
@@ -11,7 +10,6 @@ extern "C" {
 #include "col2im.h"
 #include "utils.h"
 #include "cuda.h"
-}
 
 __global__ void binarize_kernel(float *x, int n, float *binary)
 {
@@ -22,8 +20,8 @@ __global__ void binarize_kernel(float *x, int n, float *binary)
 
 void binarize_gpu(float *x, int n, float *binary)
 {
-    binarize_kernel<<<cuda_gridsize(n), BLOCK>>>(x, n, binary);
-    check_error(cudaPeekAtLastError());
+    hipLaunchKernelGGL((binarize_kernel), dim3(hip_gridsize(n)), dim3(BLOCK), 0, 0, x, n, binary);
+    check_error(hipPeekAtLastError());
 }
 
 __global__ void binarize_input_kernel(float *input, int n, int size, float *binary)
@@ -43,8 +41,8 @@ __global__ void binarize_input_kernel(float *input, int n, int size, float *bina
 
 void binarize_input_gpu(float *input, int n, int size, float *binary)
 {
-    binarize_input_kernel<<<cuda_gridsize(size), BLOCK>>>(input, n, size, binary);
-    check_error(cudaPeekAtLastError());
+    hipLaunchKernelGGL((binarize_input_kernel), dim3(hip_gridsize(size)), dim3(BLOCK), 0, 0, input, n, size, binary);
+    check_error(hipPeekAtLastError());
 }
 
 
@@ -66,8 +64,8 @@ __global__ void binarize_weights_kernel(float *weights, int n, int size, float *
 
 void binarize_weights_gpu(float *weights, int n, int size, float *binary)
 {
-    binarize_weights_kernel<<<cuda_gridsize(n), BLOCK>>>(weights, n, size, binary);
-    check_error(cudaPeekAtLastError());
+    hipLaunchKernelGGL((binarize_weights_kernel), dim3(hip_gridsize(n)), dim3(BLOCK), 0, 0, weights, n, size, binary);
+    check_error(hipPeekAtLastError());
 }
 
 void forward_convolutional_layer_gpu(convolutional_layer l, network net)
@@ -164,7 +162,7 @@ __global__ void smooth_kernel(float *x, int n, int w, int h, int c, int size, fl
     }
 }
 
-extern "C" void smooth_layer(layer l, int size, float rate)
+FUNC_OP void smooth_layer(layer l, int size, float rate)
 {
     int h = l.out_h;
     int w = l.out_w;
@@ -172,8 +170,8 @@ extern "C" void smooth_layer(layer l, int size, float rate)
 
     size_t n = h*w*c*l.batch;
 
-    smooth_kernel<<<cuda_gridsize(n), BLOCK>>>(l.output_gpu, n, l.w, l.h, l.c, size, rate, l.delta_gpu);
-    check_error(cudaPeekAtLastError());
+    hipLaunchKernelGGL((smooth_kernel), dim3(hip_gridsize(n)), dim3(BLOCK), 0, 0, l.output_gpu, n, l.w, l.h, l.c, size, rate, l.delta_gpu);
+    check_error(hipPeekAtLastError());
 }
 
 void backward_convolutional_layer_gpu(convolutional_layer l, network net)
@@ -272,27 +270,27 @@ void backward_convolutional_layer_gpu(convolutional_layer l, network net)
 
 void pull_convolutional_layer(layer l)
 {
-    cuda_pull_array(l.weights_gpu, l.weights, l.nweights);
-    cuda_pull_array(l.biases_gpu, l.biases, l.n);
-    cuda_pull_array(l.weight_updates_gpu, l.weight_updates, l.nweights);
-    cuda_pull_array(l.bias_updates_gpu, l.bias_updates, l.n);
+    hip_pull_array(l.weights_gpu, l.weights, l.nweights);
+    hip_pull_array(l.biases_gpu, l.biases, l.n);
+    hip_pull_array(l.weight_updates_gpu, l.weight_updates, l.nweights);
+    hip_pull_array(l.bias_updates_gpu, l.bias_updates, l.n);
     if (l.batch_normalize){
-        cuda_pull_array(l.scales_gpu, l.scales, l.n);
-        cuda_pull_array(l.rolling_mean_gpu, l.rolling_mean, l.n);
-        cuda_pull_array(l.rolling_variance_gpu, l.rolling_variance, l.n);
+        hip_pull_array(l.scales_gpu, l.scales, l.n);
+        hip_pull_array(l.rolling_mean_gpu, l.rolling_mean, l.n);
+        hip_pull_array(l.rolling_variance_gpu, l.rolling_variance, l.n);
     }
 }
 
 void push_convolutional_layer(layer l)
 {
-    cuda_push_array(l.weights_gpu, l.weights, l.nweights);
-    cuda_push_array(l.biases_gpu, l.biases, l.n);
-    cuda_push_array(l.weight_updates_gpu, l.weight_updates, l.nweights);
-    cuda_push_array(l.bias_updates_gpu, l.bias_updates, l.n);
+    hip_push_array(l.weights_gpu, l.weights, l.nweights);
+    hip_push_array(l.biases_gpu, l.biases, l.n);
+    hip_push_array(l.weight_updates_gpu, l.weight_updates, l.nweights);
+    hip_push_array(l.bias_updates_gpu, l.bias_updates, l.n);
     if (l.batch_normalize){
-        cuda_push_array(l.scales_gpu, l.scales, l.n);
-        cuda_push_array(l.rolling_mean_gpu, l.rolling_mean, l.n);
-        cuda_push_array(l.rolling_variance_gpu, l.rolling_variance, l.n);
+        hip_push_array(l.scales_gpu, l.scales, l.n);
+        hip_push_array(l.rolling_mean_gpu, l.rolling_mean, l.n);
+        hip_push_array(l.rolling_variance_gpu, l.rolling_variance, l.n);
     }
 }
 

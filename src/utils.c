@@ -43,13 +43,13 @@ int *read_intlist(char *gpu_list, int *ngpus, int d)
         for(i = 0; i < len; ++i){
             if (gpu_list[i] == ',') ++*ngpus;
         }
-        gpus = calloc(*ngpus, sizeof(int));
+        gpus = (int *)calloc(*ngpus, sizeof(int));
         for(i = 0; i < *ngpus; ++i){
             gpus[i] = atoi(gpu_list);
             gpu_list = strchr(gpu_list, ',')+1;
         }
     } else {
-        gpus = calloc(1, sizeof(float));
+        gpus = (int *)calloc(1, sizeof(float));
         *gpus = d;
         *ngpus = 1;
     }
@@ -65,13 +65,13 @@ int *read_map(char *filename)
     if(!file) file_error(filename);
     while((str=fgetl(file))){
         ++n;
-        map = realloc(map, n*sizeof(int));
+        map = (int *)realloc(map, n*sizeof(int));
         map[n-1] = atoi(str);
     }
     return map;
 }
 
-void sorta_shuffle(void *arr, size_t n, size_t size, size_t sections)
+void sorta_shuffle(char *arr, size_t n, size_t size, size_t sections)
 {
     size_t i;
     for(i = 0; i < sections; ++i){
@@ -82,7 +82,7 @@ void sorta_shuffle(void *arr, size_t n, size_t size, size_t sections)
     }
 }
 
-void shuffle(void *arr, size_t n, size_t size)
+void shuffle(char *arr, size_t n, size_t size)
 {
     size_t i;
     void *swp = calloc(1, size);
@@ -96,7 +96,7 @@ void shuffle(void *arr, size_t n, size_t size)
 
 int *random_index_order(int min, int max)
 {
-    int *inds = calloc(max-min, sizeof(int));
+    int *inds = (int *)calloc(max-min, sizeof(int));
     int i;
     for(i = min; i < max; ++i){
         inds[i] = i;
@@ -266,7 +266,7 @@ unsigned char *read_file(char *filename)
     size = ftell(fp);
     fseek(fp, 0, SEEK_SET); 
 
-    unsigned char *text = calloc(size+1, sizeof(char));
+    unsigned char *text = (unsigned char *)calloc(size+1, sizeof(char));
     fread(text, 1, size, fp);
     fclose(fp);
     return text;
@@ -336,7 +336,7 @@ char *fgetl(FILE *fp)
 {
     if(feof(fp)) return 0;
     size_t size = 512;
-    char *line = malloc(size*sizeof(char));
+    char *line = (char *)malloc(size*sizeof(char));
     if(!fgets(line, size, fp)){
         free(line);
         return 0;
@@ -347,7 +347,7 @@ char *fgetl(FILE *fp)
     while((line[curr-1] != '\n') && !feof(fp)){
         if(curr == size-1){
             size *= 2;
-            line = realloc(line, size*sizeof(char));
+            line = (char *)realloc(line, size*sizeof(char));
             if(!line) {
                 printf("%ld\n", size);
                 malloc_error();
@@ -422,7 +422,7 @@ void write_all(int fd, char *buffer, size_t bytes)
 
 char *copy_string(char *s)
 {
-    char *copy = malloc(strlen(s)+1);
+    char *copy = (char *)malloc(strlen(s)+1);
     strncpy(copy, s, strlen(s)+1);
     return copy;
 }
@@ -458,7 +458,7 @@ int count_fields(char *line)
 
 float *parse_fields(char *line, int n)
 {
-    float *field = calloc(n, sizeof(float));
+    float *field = (float *)calloc(n, sizeof(float));
     char *c, *p, *end;
     int count = 0;
     int done = 0;
@@ -715,9 +715,9 @@ float rand_scale(float s)
 float **one_hot_encode(float *a, int n, int k)
 {
     int i;
-    float **t = calloc(n, sizeof(float*));
+    float **t = (float **)calloc(n, sizeof(float*));
     for(i = 0; i < n; ++i){
-        t[i] = calloc(k, sizeof(float));
+        t[i] = (float *)calloc(k, sizeof(float));
         int index = (int)a[i];
         t[i][index] = 1;
     }

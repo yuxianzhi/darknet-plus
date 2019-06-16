@@ -26,7 +26,7 @@ int local_out_width(local_layer l)
 local_layer make_local_layer(int batch, int h, int w, int c, int n, int size, int stride, int pad, ACTIVATION activation)
 {
     int i;
-    local_layer l = {0};
+    local_layer l;
     l.type = LOCAL;
 
     l.h = h;
@@ -47,18 +47,18 @@ local_layer make_local_layer(int batch, int h, int w, int c, int n, int size, in
     l.outputs = l.out_h * l.out_w * l.out_c;
     l.inputs = l.w * l.h * l.c;
 
-    l.weights = calloc(c*n*size*size*locations, sizeof(float));
-    l.weight_updates = calloc(c*n*size*size*locations, sizeof(float));
+    l.weights = (float *)calloc(c*n*size*size*locations, sizeof(float));
+    l.weight_updates = (float *)calloc(c*n*size*size*locations, sizeof(float));
 
-    l.biases = calloc(l.outputs, sizeof(float));
-    l.bias_updates = calloc(l.outputs, sizeof(float));
+    l.biases = (float *)calloc(l.outputs, sizeof(float));
+    l.bias_updates = (float *)calloc(l.outputs, sizeof(float));
 
     // float scale = 1./sqrt(size*size*c);
     float scale = sqrt(2./(size*size*c));
     for(i = 0; i < c*n*size*size; ++i) l.weights[i] = scale*rand_uniform(-1,1);
 
-    l.output = calloc(l.batch*out_h * out_w * n, sizeof(float));
-    l.delta  = calloc(l.batch*out_h * out_w * n, sizeof(float));
+    l.output = (float *)calloc(l.batch*out_h * out_w * n, sizeof(float));
+    l.delta  = (float *)calloc(l.batch*out_h * out_w * n, sizeof(float));
 
     l.workspace_size = out_h*out_w*size*size*c;
     
@@ -71,14 +71,14 @@ local_layer make_local_layer(int batch, int h, int w, int c, int n, int size, in
     l.backward_gpu = backward_local_layer_gpu;
     l.update_gpu = update_local_layer_gpu;
 
-    l.weights_gpu = cuda_make_array(l.weights, c*n*size*size*locations);
-    l.weight_updates_gpu = cuda_make_array(l.weight_updates, c*n*size*size*locations);
+    l.weights_gpu = hip_make_array(l.weights, c*n*size*size*locations);
+    l.weight_updates_gpu = hip_make_array(l.weight_updates, c*n*size*size*locations);
 
-    l.biases_gpu = cuda_make_array(l.biases, l.outputs);
-    l.bias_updates_gpu = cuda_make_array(l.bias_updates, l.outputs);
+    l.biases_gpu = hip_make_array(l.biases, l.outputs);
+    l.bias_updates_gpu = hip_make_array(l.bias_updates, l.outputs);
 
-    l.delta_gpu = cuda_make_array(l.delta, l.batch*out_h*out_w*n);
-    l.output_gpu = cuda_make_array(l.output, l.batch*out_h*out_w*n);
+    l.delta_gpu = hip_make_array(l.delta, l.batch*out_h*out_w*n);
+    l.output_gpu = hip_make_array(l.output, l.batch*out_h*out_w*n);
 
 #endif
     l.activation = activation;
@@ -279,15 +279,15 @@ void pull_local_layer(local_layer l)
 {
     int locations = l.out_w*l.out_h;
     int size = l.size*l.size*l.c*l.n*locations;
-    cuda_pull_array(l.weights_gpu, l.weights, size);
-    cuda_pull_array(l.biases_gpu, l.biases, l.outputs);
+    hip_pull_array(l.weights_gpu, l.weights, size);
+    hip_pull_array(l.biases_gpu, l.biases, l.outputs);
 }
 
 void push_local_layer(local_layer l)
 {
     int locations = l.out_w*l.out_h;
     int size = l.size*l.size*l.c*l.n*locations;
-    cuda_push_array(l.weights_gpu, l.weights, size);
-    cuda_push_array(l.biases_gpu, l.biases, l.outputs);
+    hip_push_array(l.weights_gpu, l.weights, size);
+    hip_push_array(l.biases_gpu, l.biases, l.outputs);
 }
 #endif

@@ -30,48 +30,48 @@ layer make_lstm_layer(int batch, int inputs, int outputs, int steps, int batch_n
 {
     fprintf(stderr, "LSTM Layer: %d inputs, %d outputs\n", inputs, outputs);
     batch = batch / steps;
-    layer l = { 0 };
+    layer l;
     l.batch = batch;
     l.type = LSTM;
     l.steps = steps;
     l.inputs = inputs;
 
-    l.uf = malloc(sizeof(layer));
+    l.uf = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.uf) = make_connected_layer(batch*steps, inputs, outputs, LINEAR, batch_normalize, adam);
     l.uf->batch = batch;
 
-    l.ui = malloc(sizeof(layer));
+    l.ui = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.ui) = make_connected_layer(batch*steps, inputs, outputs, LINEAR, batch_normalize, adam);
     l.ui->batch = batch;
 
-    l.ug = malloc(sizeof(layer));
+    l.ug = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.ug) = make_connected_layer(batch*steps, inputs, outputs, LINEAR, batch_normalize, adam);
     l.ug->batch = batch;
 
-    l.uo = malloc(sizeof(layer));
+    l.uo = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.uo) = make_connected_layer(batch*steps, inputs, outputs, LINEAR, batch_normalize, adam);
     l.uo->batch = batch;
 
-    l.wf = malloc(sizeof(layer));
+    l.wf = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.wf) = make_connected_layer(batch*steps, outputs, outputs, LINEAR, batch_normalize, adam);
     l.wf->batch = batch;
 
-    l.wi = malloc(sizeof(layer));
+    l.wi = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.wi) = make_connected_layer(batch*steps, outputs, outputs, LINEAR, batch_normalize, adam);
     l.wi->batch = batch;
 
-    l.wg = malloc(sizeof(layer));
+    l.wg = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.wg) = make_connected_layer(batch*steps, outputs, outputs, LINEAR, batch_normalize, adam);
     l.wg->batch = batch;
 
-    l.wo = malloc(sizeof(layer));
+    l.wo = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.wo) = make_connected_layer(batch*steps, outputs, outputs, LINEAR, batch_normalize, adam);
     l.wo->batch = batch;
@@ -79,51 +79,51 @@ layer make_lstm_layer(int batch, int inputs, int outputs, int steps, int batch_n
     l.batch_normalize = batch_normalize;
     l.outputs = outputs;
 
-    l.output = calloc(outputs*batch*steps, sizeof(float));
-    l.state = calloc(outputs*batch, sizeof(float));
+    l.output = (float *)calloc(outputs*batch*steps, sizeof(float));
+    l.state = (float *)calloc(outputs*batch, sizeof(float));
 
     l.forward = forward_lstm_layer;
     l.update = update_lstm_layer;
 
-    l.prev_state_cpu =  calloc(batch*outputs, sizeof(float));
-    l.prev_cell_cpu =   calloc(batch*outputs, sizeof(float));
-    l.cell_cpu =        calloc(batch*outputs*steps, sizeof(float));
+    l.prev_state_cpu =  (float *)calloc(batch*outputs, sizeof(float));
+    l.prev_cell_cpu =   (float *)calloc(batch*outputs, sizeof(float));
+    l.cell_cpu =        (float *)calloc(batch*outputs*steps, sizeof(float));
 
-    l.f_cpu =           calloc(batch*outputs, sizeof(float));
-    l.i_cpu =           calloc(batch*outputs, sizeof(float));
-    l.g_cpu =           calloc(batch*outputs, sizeof(float));
-    l.o_cpu =           calloc(batch*outputs, sizeof(float));
-    l.c_cpu =           calloc(batch*outputs, sizeof(float));
-    l.h_cpu =           calloc(batch*outputs, sizeof(float));
-    l.temp_cpu =        calloc(batch*outputs, sizeof(float));
-    l.temp2_cpu =       calloc(batch*outputs, sizeof(float));
-    l.temp3_cpu =       calloc(batch*outputs, sizeof(float));
-    l.dc_cpu =          calloc(batch*outputs, sizeof(float));
-    l.dh_cpu =          calloc(batch*outputs, sizeof(float));
+    l.f_cpu =           (float *)calloc(batch*outputs, sizeof(float));
+    l.i_cpu =           (float *)calloc(batch*outputs, sizeof(float));
+    l.g_cpu =           (float *)calloc(batch*outputs, sizeof(float));
+    l.o_cpu =           (float *)calloc(batch*outputs, sizeof(float));
+    l.c_cpu =           (float *)calloc(batch*outputs, sizeof(float));
+    l.h_cpu =           (float *)calloc(batch*outputs, sizeof(float));
+    l.temp_cpu =        (float *)calloc(batch*outputs, sizeof(float));
+    l.temp2_cpu =       (float *)calloc(batch*outputs, sizeof(float));
+    l.temp3_cpu =       (float *)calloc(batch*outputs, sizeof(float));
+    l.dc_cpu =          (float *)calloc(batch*outputs, sizeof(float));
+    l.dh_cpu =          (float *)calloc(batch*outputs, sizeof(float));
 
 #ifdef GPU
     l.forward_gpu = forward_lstm_layer_gpu;
     l.backward_gpu = backward_lstm_layer_gpu;
     l.update_gpu = update_lstm_layer_gpu;
 
-    l.output_gpu = cuda_make_array(0, batch*outputs*steps);
-    l.delta_gpu = cuda_make_array(0, batch*l.outputs*steps);
+    l.output_gpu = hip_make_array(0, batch*outputs*steps);
+    l.delta_gpu = hip_make_array(0, batch*l.outputs*steps);
 
-    l.prev_state_gpu = cuda_make_array(0, batch*outputs);
-    l.prev_cell_gpu = cuda_make_array(0, batch*outputs);
-    l.cell_gpu = cuda_make_array(0, batch*outputs*steps);
+    l.prev_state_gpu = hip_make_array(0, batch*outputs);
+    l.prev_cell_gpu = hip_make_array(0, batch*outputs);
+    l.cell_gpu = hip_make_array(0, batch*outputs*steps);
 
-    l.f_gpu = cuda_make_array(0, batch*outputs);
-    l.i_gpu = cuda_make_array(0, batch*outputs);
-    l.g_gpu = cuda_make_array(0, batch*outputs);
-    l.o_gpu = cuda_make_array(0, batch*outputs);
-    l.c_gpu = cuda_make_array(0, batch*outputs);
-    l.h_gpu = cuda_make_array(0, batch*outputs);
-    l.temp_gpu =  cuda_make_array(0, batch*outputs);
-    l.temp2_gpu = cuda_make_array(0, batch*outputs);
-    l.temp3_gpu = cuda_make_array(0, batch*outputs);
-    l.dc_gpu = cuda_make_array(0, batch*outputs);
-    l.dh_gpu = cuda_make_array(0, batch*outputs);
+    l.f_gpu = hip_make_array(0, batch*outputs);
+    l.i_gpu = hip_make_array(0, batch*outputs);
+    l.g_gpu = hip_make_array(0, batch*outputs);
+    l.o_gpu = hip_make_array(0, batch*outputs);
+    l.c_gpu = hip_make_array(0, batch*outputs);
+    l.h_gpu = hip_make_array(0, batch*outputs);
+    l.temp_gpu =  hip_make_array(0, batch*outputs);
+    l.temp2_gpu = hip_make_array(0, batch*outputs);
+    l.temp3_gpu = hip_make_array(0, batch*outputs);
+    l.dc_gpu = hip_make_array(0, batch*outputs);
+    l.dh_gpu = hip_make_array(0, batch*outputs);
 #ifdef CUDNN
         cudnnSetTensor4dDescriptor(l.wf->dstTensorDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, batch, l.wf->out_c, l.wf->out_h, l.wf->out_w); 
         cudnnSetTensor4dDescriptor(l.wi->dstTensorDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, batch, l.wi->out_c, l.wi->out_h, l.wi->out_w); 
@@ -155,7 +155,7 @@ void update_lstm_layer(layer l, update_args a)
 
 void forward_lstm_layer(layer l, network state)
 {
-    network s = { 0 };
+    network s;
     s.train = state.train;
     int i;
     layer wf = *(l.wf);
@@ -241,7 +241,7 @@ void forward_lstm_layer(layer l, network state)
 
 void backward_lstm_layer(layer l, network state)
 {
-    network s = { 0 };
+    network s;
     s.train = state.train;
     int i;
     layer wf = *(l.wf);
@@ -397,7 +397,7 @@ void update_lstm_layer_gpu(layer l, update_args a)
 
 void forward_lstm_layer_gpu(layer l, network state)
 {
-    network s = { 0 };
+    network s;
     s.train = state.train;
     int i;
     layer wf = *(l.wf);
@@ -483,7 +483,7 @@ void forward_lstm_layer_gpu(layer l, network state)
 
 void backward_lstm_layer_gpu(layer l, network state)
 {
-    network s = { 0 };
+    network s;
     s.train = state.train;
     int i;
     layer wf = *(l.wf);

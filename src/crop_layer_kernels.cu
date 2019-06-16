@@ -1,13 +1,11 @@
-#include "cuda_runtime.h"
-#include "curand.h"
-#include "cublas_v2.h"
+#include <hip/hip_runtime.h>
+#include "rocrand/rocrand.h"
+#include "rocblas.h"
 
-extern "C" {
 #include "crop_layer.h"
 #include "utils.h"
 #include "cuda.h"
 #include "image.h"
-}
 
 __device__ float get_pixel_kernel(float *image, int w, int h, int x, int y, int c)
 {
@@ -180,9 +178,9 @@ __global__ void forward_crop_layer_kernel(float *input, float *rand, int size, i
     output[count] = bilinear_interpolate_kernel(input, w, h, rx, ry, k);
 }
 
-extern "C" void forward_crop_layer_gpu(crop_layer layer, network net)
+FUNC_OP void forward_crop_layer_gpu(crop_layer layer, network net)
 {
-    cuda_random(layer.rand_gpu, layer.batch*8);
+    hip_random(layer.rand_gpu, layer.batch*8);
 
     float radians = layer.angle*3.14159265f/180.f;
 
@@ -195,16 +193,16 @@ extern "C" void forward_crop_layer_gpu(crop_layer layer, network net)
 
     int size = layer.batch * layer.w * layer.h;
 
-    levels_image_kernel<<<cuda_gridsize(size), BLOCK>>>(net.input_gpu, layer.rand_gpu, layer.batch, layer.w, layer.h, net.train, layer.saturation, layer.exposure, translate, scale, layer.shift);
-    check_error(cudaPeekAtLastError());
+    hipLaunchKernelGGL((levels_image_kernel), dim3(hip_gridsize(size)), dim3(BLOCK), 0, 0, net.input_gpu, layer.rand_gpu, layer.batch, layer.w, layer.h, net.train, layer.saturation, layer.exposure, translate, scale, layer.shift);
+    check_error(hipPeekAtLastError());
 
     size = layer.batch*layer.c*layer.out_w*layer.out_h;
 
-    forward_crop_layer_kernel<<<cuda_gridsize(size), BLOCK>>>(net.input_gpu, layer.rand_gpu, size, layer.c, layer.h, layer.w, layer.out_h, layer.out_w, net.train, layer.flip, radians, layer.output_gpu);
-    check_error(cudaPeekAtLastError());
+    hipLaunchKernelGGL((forward_crop_layer_kernel), dim3(hip_gridsize(size)), dim3(BLOCK), 0, 0, net.input_gpu, layer.rand_gpu, size, layer.c, layer.h, layer.w, layer.out_h, layer.out_w, net.train, layer.flip, radians, layer.output_gpu);
+    check_error(hipPeekAtLastError());
 
 /*
-       cuda_pull_array(layer.output_gpu, layer.output, size);
+       hip_pull_array(layer.output_gpu, layer.output, size);
        image im = float_to_image(layer.crop_width, layer.crop_height, layer.c, layer.output + 0*(size/layer.batch));
        image im2 = float_to_image(layer.crop_width, layer.crop_height, layer.c, layer.output + 1*(size/layer.batch));
        image im3 = float_to_image(layer.crop_width, layer.crop_height, layer.c, layer.output + 2*(size/layer.batch));

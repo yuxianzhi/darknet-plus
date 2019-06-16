@@ -12,7 +12,7 @@
 
 layer make_iseg_layer(int batch, int w, int h, int classes, int ids)
 {
-    layer l = {0};
+    layer l;
     l.type = ISEG;
 
     l.h = h;
@@ -24,19 +24,19 @@ layer make_iseg_layer(int batch, int w, int h, int classes, int ids)
     l.classes = classes;
     l.batch = batch;
     l.extra = ids;
-    l.cost = calloc(1, sizeof(float));
+    l.cost = (float *)calloc(1, sizeof(float));
     l.outputs = h*w*l.c;
     l.inputs = l.outputs;
     l.truths = 90*(l.w*l.h+1);
-    l.delta = calloc(batch*l.outputs, sizeof(float));
-    l.output = calloc(batch*l.outputs, sizeof(float));
+    l.delta = (float *)calloc(batch*l.outputs, sizeof(float));
+    l.output = (float *)calloc(batch*l.outputs, sizeof(float));
 
-    l.counts = calloc(90, sizeof(int));
-    l.sums = calloc(90, sizeof(float*));
+    l.counts = (int *)calloc(90, sizeof(int));
+    l.sums = (float **)calloc(90, sizeof(float*));
     if(ids){
         int i;
         for(i = 0; i < 90; ++i){
-            l.sums[i] = calloc(ids, sizeof(float));
+            l.sums[i] = (float *)calloc(ids, sizeof(float));
         }
     }
 
@@ -45,8 +45,8 @@ layer make_iseg_layer(int batch, int w, int h, int classes, int ids)
 #ifdef GPU
     l.forward_gpu = forward_iseg_layer_gpu;
     l.backward_gpu = backward_iseg_layer_gpu;
-    l.output_gpu = cuda_make_array(l.output, batch*l.outputs);
-    l.delta_gpu = cuda_make_array(l.delta, batch*l.outputs);
+    l.output_gpu = hip_make_array(l.output, batch*l.outputs);
+    l.delta_gpu = hip_make_array(l.delta, batch*l.outputs);
 #endif
 
     fprintf(stderr, "iseg\n");
@@ -63,15 +63,15 @@ void resize_iseg_layer(layer *l, int w, int h)
     l->outputs = h*w*l->c;
     l->inputs = l->outputs;
 
-    l->output = realloc(l->output, l->batch*l->outputs*sizeof(float));
-    l->delta = realloc(l->delta, l->batch*l->outputs*sizeof(float));
+    l->output = (float *)realloc(l->output, l->batch*l->outputs*sizeof(float));
+    l->delta = (float *)realloc(l->delta, l->batch*l->outputs*sizeof(float));
 
 #ifdef GPU
-    cuda_free(l->delta_gpu);
-    cuda_free(l->output_gpu);
+    hip_free(l->delta_gpu);
+    hip_free(l->output_gpu);
 
-    l->delta_gpu =     cuda_make_array(l->delta, l->batch*l->outputs);
-    l->output_gpu =    cuda_make_array(l->output, l->batch*l->outputs);
+    l->delta_gpu =     hip_make_array(l->delta, l->batch*l->outputs);
+    l->output_gpu =    hip_make_array(l->output, l->batch*l->outputs);
 #endif
 }
 
@@ -127,7 +127,7 @@ void forward_iseg_layer(const layer l, network net)
             }
         }
 
-        float *mse = calloc(90, sizeof(float));
+        float *mse = (float *)calloc(90, sizeof(float));
         for(i = 0; i < 90; ++i){
             int c = net.truth[b*l.truths + i*(l.w*l.h+1)];
             if(c < 0) break;
@@ -208,9 +208,9 @@ void forward_iseg_layer_gpu(const layer l, network net)
         //if(l.extra) activate_array_gpu(l.output_gpu + b*l.outputs + l.classes*l.w*l.h, l.extra*l.w*l.h, LOGISTIC);
     }
 
-    cuda_pull_array(l.output_gpu, net.input, l.batch*l.inputs);
+    hip_pull_array(l.output_gpu, net.input, l.batch*l.inputs);
     forward_iseg_layer(l, net);
-    cuda_push_array(l.delta_gpu, l.delta, l.batch*l.outputs);
+    hip_push_array(l.delta_gpu, l.delta, l.batch*l.outputs);
 }
 
 void backward_iseg_layer_gpu(const layer l, network net)

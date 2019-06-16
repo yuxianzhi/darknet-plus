@@ -19,7 +19,7 @@ void train_tag(char *cfgfile, char *weightfile, int clear)
     data train;
     data buffer;
 
-    load_args args = {0};
+    load_args args;
     args.w = net->w;
     args.h = net->h;
 

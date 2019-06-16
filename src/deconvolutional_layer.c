@@ -35,7 +35,7 @@ void bilinear_init(layer l)
 layer make_deconvolutional_layer(int batch, int h, int w, int c, int n, int size, int stride, int padding, ACTIVATION activation, int batch_normalize, int adam)
 {
     int i;
-    layer l = {0};
+    layer l;
     l.type = DECONVOLUTIONAL;
 
     l.h = h;
@@ -49,11 +49,11 @@ layer make_deconvolutional_layer(int batch, int h, int w, int c, int n, int size
     l.nweights = c*n*size*size;
     l.nbiases = n;
 
-    l.weights = calloc(c*n*size*size, sizeof(float));
-    l.weight_updates = calloc(c*n*size*size, sizeof(float));
+    l.weights = (float *)calloc(c*n*size*size, sizeof(float));
+    l.weight_updates = (float *)calloc(c*n*size*size, sizeof(float));
 
-    l.biases = calloc(n, sizeof(float));
-    l.bias_updates = calloc(n, sizeof(float));
+    l.biases = (float *)calloc(n, sizeof(float));
+    l.bias_updates = (float *)calloc(n, sizeof(float));
     //float scale = n/(size*size*c);
     //printf("scale: %f\n", scale);
     float scale = .02;
@@ -72,8 +72,8 @@ layer make_deconvolutional_layer(int batch, int h, int w, int c, int n, int size
 
     scal_cpu(l.nweights, (float)l.out_w*l.out_h/(l.w*l.h), l.weights, 1);
 
-    l.output = calloc(l.batch*l.outputs, sizeof(float));
-    l.delta  = calloc(l.batch*l.outputs, sizeof(float));
+    l.output = (float *)calloc(l.batch*l.outputs, sizeof(float));
+    l.delta  = (float *)calloc(l.batch*l.outputs, sizeof(float));
 
     l.forward = forward_deconvolutional_layer;
     l.backward = backward_deconvolutional_layer;
@@ -82,30 +82,30 @@ layer make_deconvolutional_layer(int batch, int h, int w, int c, int n, int size
     l.batch_normalize = batch_normalize;
 
     if(batch_normalize){
-        l.scales = calloc(n, sizeof(float));
-        l.scale_updates = calloc(n, sizeof(float));
+        l.scales = (float *)calloc(n, sizeof(float));
+        l.scale_updates = (float *)calloc(n, sizeof(float));
         for(i = 0; i < n; ++i){
             l.scales[i] = 1;
         }
 
-        l.mean = calloc(n, sizeof(float));
-        l.variance = calloc(n, sizeof(float));
+        l.mean = (float *)calloc(n, sizeof(float));
+        l.variance = (float *)calloc(n, sizeof(float));
 
-        l.mean_delta = calloc(n, sizeof(float));
-        l.variance_delta = calloc(n, sizeof(float));
+        l.mean_delta = (float *)calloc(n, sizeof(float));
+        l.variance_delta = (float *)calloc(n, sizeof(float));
 
-        l.rolling_mean = calloc(n, sizeof(float));
-        l.rolling_variance = calloc(n, sizeof(float));
-        l.x = calloc(l.batch*l.outputs, sizeof(float));
-        l.x_norm = calloc(l.batch*l.outputs, sizeof(float));
+        l.rolling_mean = (float *)calloc(n, sizeof(float));
+        l.rolling_variance = (float *)calloc(n, sizeof(float));
+        l.x = (float *)calloc(l.batch*l.outputs, sizeof(float));
+        l.x_norm = (float *)calloc(l.batch*l.outputs, sizeof(float));
     }
     if(adam){
-        l.m = calloc(c*n*size*size, sizeof(float));
-        l.v = calloc(c*n*size*size, sizeof(float));
-        l.bias_m = calloc(n, sizeof(float));
-        l.scale_m = calloc(n, sizeof(float));
-        l.bias_v = calloc(n, sizeof(float));
-        l.scale_v = calloc(n, sizeof(float));
+        l.m = (float *)calloc(c*n*size*size, sizeof(float));
+        l.v = (float *)calloc(c*n*size*size, sizeof(float));
+        l.bias_m = (float *)calloc(n, sizeof(float));
+        l.scale_m = (float *)calloc(n, sizeof(float));
+        l.bias_v = (float *)calloc(n, sizeof(float));
+        l.scale_v = (float *)calloc(n, sizeof(float));
     }
 
 #ifdef GPU
@@ -116,37 +116,37 @@ layer make_deconvolutional_layer(int batch, int h, int w, int c, int n, int size
     if(gpu_index >= 0){
 
         if (adam) {
-            l.m_gpu = cuda_make_array(l.m, c*n*size*size);
-            l.v_gpu = cuda_make_array(l.v, c*n*size*size);
-            l.bias_m_gpu = cuda_make_array(l.bias_m, n);
-            l.bias_v_gpu = cuda_make_array(l.bias_v, n);
-            l.scale_m_gpu = cuda_make_array(l.scale_m, n);
-            l.scale_v_gpu = cuda_make_array(l.scale_v, n);
+            l.m_gpu = hip_make_array(l.m, c*n*size*size);
+            l.v_gpu = hip_make_array(l.v, c*n*size*size);
+            l.bias_m_gpu = hip_make_array(l.bias_m, n);
+            l.bias_v_gpu = hip_make_array(l.bias_v, n);
+            l.scale_m_gpu = hip_make_array(l.scale_m, n);
+            l.scale_v_gpu = hip_make_array(l.scale_v, n);
         }
-        l.weights_gpu = cuda_make_array(l.weights, c*n*size*size);
-        l.weight_updates_gpu = cuda_make_array(l.weight_updates, c*n*size*size);
+        l.weights_gpu = hip_make_array(l.weights, c*n*size*size);
+        l.weight_updates_gpu = hip_make_array(l.weight_updates, c*n*size*size);
 
-        l.biases_gpu = cuda_make_array(l.biases, n);
-        l.bias_updates_gpu = cuda_make_array(l.bias_updates, n);
+        l.biases_gpu = hip_make_array(l.biases, n);
+        l.bias_updates_gpu = hip_make_array(l.bias_updates, n);
 
-        l.delta_gpu = cuda_make_array(l.delta, l.batch*l.out_h*l.out_w*n);
-        l.output_gpu = cuda_make_array(l.output, l.batch*l.out_h*l.out_w*n);
+        l.delta_gpu = hip_make_array(l.delta, l.batch*l.out_h*l.out_w*n);
+        l.output_gpu = hip_make_array(l.output, l.batch*l.out_h*l.out_w*n);
 
         if(batch_normalize){
-            l.mean_gpu = cuda_make_array(0, n);
-            l.variance_gpu = cuda_make_array(0, n);
+            l.mean_gpu = hip_make_array(0, n);
+            l.variance_gpu = hip_make_array(0, n);
 
-            l.rolling_mean_gpu = cuda_make_array(0, n);
-            l.rolling_variance_gpu = cuda_make_array(0, n);
+            l.rolling_mean_gpu = hip_make_array(0, n);
+            l.rolling_variance_gpu = hip_make_array(0, n);
 
-            l.mean_delta_gpu = cuda_make_array(0, n);
-            l.variance_delta_gpu = cuda_make_array(0, n);
+            l.mean_delta_gpu = hip_make_array(0, n);
+            l.variance_delta_gpu = hip_make_array(0, n);
 
-            l.scales_gpu = cuda_make_array(l.scales, n);
-            l.scale_updates_gpu = cuda_make_array(0, n);
+            l.scales_gpu = hip_make_array(l.scales, n);
+            l.scale_updates_gpu = hip_make_array(0, n);
 
-            l.x_gpu = cuda_make_array(0, l.batch*l.out_h*l.out_w*n);
-            l.x_norm_gpu = cuda_make_array(0, l.batch*l.out_h*l.out_w*n);
+            l.x_gpu = hip_make_array(0, l.batch*l.out_h*l.out_w*n);
+            l.x_norm_gpu = hip_make_array(0, l.batch*l.out_h*l.out_w*n);
         }
     }
     #ifdef CUDNN
@@ -190,26 +190,26 @@ void resize_deconvolutional_layer(layer *l, int h, int w)
     l->outputs = l->out_h * l->out_w * l->out_c;
     l->inputs = l->w * l->h * l->c;
 
-    l->output = realloc(l->output, l->batch*l->outputs*sizeof(float));
-    l->delta  = realloc(l->delta,  l->batch*l->outputs*sizeof(float));
+    l->output = (float *)realloc(l->output, l->batch*l->outputs*sizeof(float));
+    l->delta  = (float *)realloc(l->delta,  l->batch*l->outputs*sizeof(float));
     if(l->batch_normalize){
-        l->x = realloc(l->x, l->batch*l->outputs*sizeof(float));
-        l->x_norm  = realloc(l->x_norm, l->batch*l->outputs*sizeof(float));
+        l->x = (float *)realloc(l->x, l->batch*l->outputs*sizeof(float));
+        l->x_norm  = (float *)realloc(l->x_norm, l->batch*l->outputs*sizeof(float));
     }
 
 #ifdef GPU
-    cuda_free(l->delta_gpu);
-    cuda_free(l->output_gpu);
+    hip_free(l->delta_gpu);
+    hip_free(l->output_gpu);
 
-    l->delta_gpu =  cuda_make_array(l->delta,  l->batch*l->outputs);
-    l->output_gpu = cuda_make_array(l->output, l->batch*l->outputs);
+    l->delta_gpu =  hip_make_array(l->delta,  l->batch*l->outputs);
+    l->output_gpu = hip_make_array(l->output, l->batch*l->outputs);
 
     if(l->batch_normalize){
-        cuda_free(l->x_gpu);
-        cuda_free(l->x_norm_gpu);
+        hip_free(l->x_gpu);
+        hip_free(l->x_norm_gpu);
 
-        l->x_gpu = cuda_make_array(l->output, l->batch*l->outputs);
-        l->x_norm_gpu = cuda_make_array(l->output, l->batch*l->outputs);
+        l->x_gpu = hip_make_array(l->output, l->batch*l->outputs);
+        l->x_norm_gpu = hip_make_array(l->output, l->batch*l->outputs);
     }
     #ifdef CUDNN
         cudnnSetTensor4dDescriptor(l->dstTensorDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, l->batch, l->out_c, l->out_h, l->out_w); 

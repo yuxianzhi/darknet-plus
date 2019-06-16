@@ -13,7 +13,7 @@
 
 detection_layer make_detection_layer(int batch, int inputs, int n, int side, int classes, int coords, int rescore)
 {
-    detection_layer l = {0};
+    detection_layer l;
     l.type = DETECTION;
 
     l.n = n;
@@ -26,19 +26,20 @@ detection_layer make_detection_layer(int batch, int inputs, int n, int side, int
     l.w = side;
     l.h = side;
     assert(side*side*((1 + l.coords)*l.n + l.classes) == inputs);
-    l.cost = calloc(1, sizeof(float));
+    l.cost = (float *)calloc(1, sizeof(float));
     l.outputs = l.inputs;
     l.truths = l.side*l.side*(1+l.coords+l.classes);
-    l.output = calloc(batch*l.outputs, sizeof(float));
-    l.delta = calloc(batch*l.outputs, sizeof(float));
+    printf("detection truths %d\n", l.truths);
+    l.output = (float *)calloc(batch*l.outputs, sizeof(float));
+    l.delta = (float *)calloc(batch*l.outputs, sizeof(float));
 
     l.forward = forward_detection_layer;
     l.backward = backward_detection_layer;
 #ifdef GPU
     l.forward_gpu = forward_detection_layer_gpu;
     l.backward_gpu = backward_detection_layer_gpu;
-    l.output_gpu = cuda_make_array(l.output, batch*l.outputs);
-    l.delta_gpu = cuda_make_array(l.delta, batch*l.outputs);
+    l.output_gpu = hip_make_array(l.output, batch*l.outputs);
+    l.delta_gpu = hip_make_array(l.delta, batch*l.outputs);
 #endif
 
     fprintf(stderr, "Detection Layer\n");
@@ -183,7 +184,7 @@ void forward_detection_layer(const detection_layer l, network net)
         }
 
         if(0){
-            float *costs = calloc(l.batch*locations*l.n, sizeof(float));
+            float *costs = (float *)calloc(l.batch*locations*l.n, sizeof(float));
             for (b = 0; b < l.batch; ++b) {
                 int index = b*l.inputs;
                 for (i = 0; i < locations; ++i) {
@@ -260,10 +261,10 @@ void forward_detection_layer_gpu(const detection_layer l, network net)
         return;
     }
 
-    cuda_pull_array(net.input_gpu, net.input, l.batch*l.inputs);
+    hip_pull_array(net.input_gpu, net.input, l.batch*l.inputs);
     forward_detection_layer(l, net);
-    cuda_push_array(l.output_gpu, l.output, l.batch*l.outputs);
-    cuda_push_array(l.delta_gpu, l.delta, l.batch*l.inputs);
+    hip_push_array(l.output_gpu, l.output, l.batch*l.outputs);
+    hip_push_array(l.delta_gpu, l.delta, l.batch*l.inputs);
 }
 
 void backward_detection_layer_gpu(detection_layer l, network net)

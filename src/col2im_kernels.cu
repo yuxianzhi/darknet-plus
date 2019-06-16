@@ -1,11 +1,9 @@
-#include "cuda_runtime.h"
-#include "curand.h"
-#include "cublas_v2.h"
+#include <hip/hip_runtime.h>
+#include "rocrand/rocrand.h"
+#include "rocblas.h"
 
-extern "C" {
 #include "col2im.h"
 #include "cuda.h"
-}
 
 // src: https://github.com/BVLC/caffe/blob/master/src/caffe/util/im2col.cu
 // You may also want to read: https://github.com/BVLC/caffe/blob/master/LICENSE
@@ -49,8 +47,7 @@ void col2im_gpu(float *data_col,
     int height_col = (height + 2 * pad - ksize) / stride + 1;
     int width_col = (width + 2 * pad - ksize) / stride + 1;
     int num_kernels = channels * height * width;
-    col2im_gpu_kernel<<<(num_kernels+BLOCK-1)/BLOCK,
-        BLOCK>>>(
+    hipLaunchKernelGGL((col2im_gpu_kernel), dim3((num_kernels+BLOCK-1)/BLOCK), dim3(BLOCK), 0, 0, 
                 num_kernels, data_col, height, width, ksize, pad,
                 stride, height_col,
                 width_col, data_im);

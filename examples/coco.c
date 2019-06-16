@@ -34,7 +34,7 @@ void train_coco(char *cfgfile, char *weightfile)
     //int N = plist->size;
     char **paths = (char **)list_to_array(plist);
 
-    load_args args = {0};
+    load_args args;
     args.w = net->w;
     args.h = net->h;
     args.paths = paths;
@@ -155,13 +155,13 @@ void validate_coco(char *cfg, char *weights)
     float iou_thresh = .5;
 
     int nthreads = 8;
-    image *val = calloc(nthreads, sizeof(image));
-    image *val_resized = calloc(nthreads, sizeof(image));
-    image *buf = calloc(nthreads, sizeof(image));
-    image *buf_resized = calloc(nthreads, sizeof(image));
-    pthread_t *thr = calloc(nthreads, sizeof(pthread_t));
+    image *val = (image *)calloc(nthreads, sizeof(image));
+    image *val_resized = (image *)calloc(nthreads, sizeof(image));
+    image *buf = (image *)calloc(nthreads, sizeof(image));
+    image *buf_resized = (image *)calloc(nthreads, sizeof(image));
+    pthread_t *thr = (pthread_t *)calloc(nthreads, sizeof(pthread_t));
 
-    load_args args = {0};
+    load_args args;
     args.w = net->w;
     args.h = net->h;
     args.type = IMAGE_DATA;
@@ -225,7 +225,7 @@ void validate_coco_recall(char *cfgfile, char *weightfile)
     int side = l.side;
 
     int j, k;
-    FILE **fps = calloc(classes, sizeof(FILE *));
+    FILE **fps = (FILE **)calloc(classes, sizeof(FILE *));
     for(j = 0; j < classes; ++j){
         char buff[1024];
         snprintf(buff, 1024, "%s%s.txt", base, coco_classes[j]);
@@ -270,7 +270,8 @@ void validate_coco_recall(char *cfgfile, char *weightfile)
         }
         for (j = 0; j < num_labels; ++j) {
             ++total;
-            box t = {truth[j].x, truth[j].y, truth[j].w, truth[j].h};
+            box t;
+            t.x = truth[j].x, t.y = truth[j].y, t.w = truth[j].w, t.h = truth[j].h;
             float best_iou = 0;
             for(k = 0; k < side*side*l.n; ++k){
                 float iou = box_iou(dets[k].bbox, t);

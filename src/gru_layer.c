@@ -30,40 +30,40 @@ layer make_gru_layer(int batch, int inputs, int outputs, int steps, int batch_no
 {
     fprintf(stderr, "GRU Layer: %d inputs, %d outputs\n", inputs, outputs);
     batch = batch / steps;
-    layer l = {0};
+    layer l;
     l.batch = batch;
     l.type = GRU;
     l.steps = steps;
     l.inputs = inputs;
 
-    l.uz = malloc(sizeof(layer));
+    l.uz = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.uz) = make_connected_layer(batch*steps, inputs, outputs, LINEAR, batch_normalize, adam);
     l.uz->batch = batch;
 
-    l.wz = malloc(sizeof(layer));
+    l.wz = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.wz) = make_connected_layer(batch*steps, outputs, outputs, LINEAR, batch_normalize, adam);
     l.wz->batch = batch;
 
-    l.ur = malloc(sizeof(layer));
+    l.ur = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.ur) = make_connected_layer(batch*steps, inputs, outputs, LINEAR, batch_normalize, adam);
     l.ur->batch = batch;
 
-    l.wr = malloc(sizeof(layer));
+    l.wr = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.wr) = make_connected_layer(batch*steps, outputs, outputs, LINEAR, batch_normalize, adam);
     l.wr->batch = batch;
 
 
 
-    l.uh = malloc(sizeof(layer));
+    l.uh = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.uh) = make_connected_layer(batch*steps, inputs, outputs, LINEAR, batch_normalize, adam);
     l.uh->batch = batch;
 
-    l.wh = malloc(sizeof(layer));
+    l.wh = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.wh) = make_connected_layer(batch*steps, outputs, outputs, LINEAR, batch_normalize, adam);
     l.wh->batch = batch;
@@ -72,16 +72,16 @@ layer make_gru_layer(int batch, int inputs, int outputs, int steps, int batch_no
 
 
     l.outputs = outputs;
-    l.output = calloc(outputs*batch*steps, sizeof(float));
-    l.delta = calloc(outputs*batch*steps, sizeof(float));
-    l.state = calloc(outputs*batch, sizeof(float));
-    l.prev_state = calloc(outputs*batch, sizeof(float));
-    l.forgot_state = calloc(outputs*batch, sizeof(float));
-    l.forgot_delta = calloc(outputs*batch, sizeof(float));
+    l.output = (float *)calloc(outputs*batch*steps, sizeof(float));
+    l.delta = (float *)calloc(outputs*batch*steps, sizeof(float));
+    l.state = (float *)calloc(outputs*batch, sizeof(float));
+    l.prev_state = (float *)calloc(outputs*batch, sizeof(float));
+    l.forgot_state = (float *)calloc(outputs*batch, sizeof(float));
+    l.forgot_delta = (float *)calloc(outputs*batch, sizeof(float));
 
-    l.r_cpu = calloc(outputs*batch, sizeof(float));
-    l.z_cpu = calloc(outputs*batch, sizeof(float));
-    l.h_cpu = calloc(outputs*batch, sizeof(float));
+    l.r_cpu = (float *)calloc(outputs*batch, sizeof(float));
+    l.z_cpu = (float *)calloc(outputs*batch, sizeof(float));
+    l.h_cpu = (float *)calloc(outputs*batch, sizeof(float));
 
     l.forward = forward_gru_layer;
     l.backward = backward_gru_layer;
@@ -92,15 +92,15 @@ layer make_gru_layer(int batch, int inputs, int outputs, int steps, int batch_no
     l.backward_gpu = backward_gru_layer_gpu;
     l.update_gpu = update_gru_layer_gpu;
 
-    l.forgot_state_gpu = cuda_make_array(0, batch*outputs);
-    l.forgot_delta_gpu = cuda_make_array(0, batch*outputs);
-    l.prev_state_gpu = cuda_make_array(0, batch*outputs);
-    l.state_gpu = cuda_make_array(0, batch*outputs);
-    l.output_gpu = cuda_make_array(0, batch*outputs*steps);
-    l.delta_gpu = cuda_make_array(0, batch*outputs*steps);
-    l.r_gpu = cuda_make_array(0, batch*outputs);
-    l.z_gpu = cuda_make_array(0, batch*outputs);
-    l.h_gpu = cuda_make_array(0, batch*outputs);
+    l.forgot_state_gpu = hip_make_array(0, batch*outputs);
+    l.forgot_delta_gpu = hip_make_array(0, batch*outputs);
+    l.prev_state_gpu = hip_make_array(0, batch*outputs);
+    l.state_gpu = hip_make_array(0, batch*outputs);
+    l.output_gpu = hip_make_array(0, batch*outputs*steps);
+    l.delta_gpu = hip_make_array(0, batch*outputs*steps);
+    l.r_gpu = hip_make_array(0, batch*outputs);
+    l.z_gpu = hip_make_array(0, batch*outputs);
+    l.h_gpu = hip_make_array(0, batch*outputs);
 
 #ifdef CUDNN
     cudnnSetTensor4dDescriptor(l.uz->dstTensorDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, batch, l.uz->out_c, l.uz->out_h, l.uz->out_w); 
@@ -227,7 +227,7 @@ void update_gru_layer_gpu(layer l, update_args a)
 
 void forward_gru_layer_gpu(layer l, network net)
 {
-    network s = {0};
+    network s;
     s.train = net.train;
     int i;
     layer uz = *(l.uz);
@@ -301,7 +301,7 @@ void forward_gru_layer_gpu(layer l, network net)
 
 void backward_gru_layer_gpu(layer l, network net)
 {
-    network s = {0};
+    network s;
     s.train = net.train;
     int i;
     layer uz = *(l.uz);

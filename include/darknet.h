@@ -8,9 +8,9 @@
 #ifdef GPU
     #define BLOCK 512
 
-    #include "cuda_runtime.h"
-    #include "curand.h"
-    #include "cublas_v2.h"
+    #include <hip/hip_runtime.h>
+    #include "rocrand/rocrand.h"
+    #include "rocblas.h"
 
     #ifdef CUDNN
     #include "cudnn.h"
@@ -25,23 +25,23 @@ extern "C" {
 extern int gpu_index;
 
 typedef struct{
-    int classes;
-    char **names;
+    int classes = 0;
+    char **names = NULL;
 } metadata;
 
 metadata get_metadata(char *file);
 
 typedef struct{
-    int *leaf;
-    int n;
-    int *parent;
-    int *child;
-    int *group;
-    char **name;
+    int *leaf = NULL;
+    int n = 0;
+    int *parent = NULL;
+    int *child = NULL;
+    int *group = NULL;
+    char **name = NULL;
 
-    int groups;
-    int *group_size;
-    int *group_offset;
+    int groups = 0;
+    int *group_size = NULL;
+    int *group_offset = NULL;
 } tree;
 tree *read_tree(char *filename);
 
@@ -95,15 +95,15 @@ typedef enum{
 } COST_TYPE;
 
 typedef struct{
-    int batch;
-    float learning_rate;
-    float momentum;
-    float decay;
-    int adam;
-    float B1;
-    float B2;
-    float eps;
-    int t;
+    int batch = 0;
+    float learning_rate = 0;
+    float momentum = 0;
+    float decay = 0;
+    int adam = 0;
+    float B1 = 0;
+    float B2 = 0;
+    float eps = 0;
+    int t = 0;
 } update_args;
 
 struct network;
@@ -122,291 +122,291 @@ struct layer{
     void (*forward_gpu)   (struct layer, struct network);
     void (*backward_gpu)  (struct layer, struct network);
     void (*update_gpu)    (struct layer, update_args);
-    int batch_normalize;
-    int shortcut;
-    int batch;
-    int forced;
-    int flipped;
-    int inputs;
-    int outputs;
-    int nweights;
-    int nbiases;
-    int extra;
-    int truths;
-    int h,w,c;
-    int out_h, out_w, out_c;
-    int n;
-    int max_boxes;
-    int groups;
-    int size;
-    int side;
-    int stride;
-    int reverse;
-    int flatten;
-    int spatial;
-    int pad;
-    int sqrt;
-    int flip;
-    int index;
-    int binary;
-    int xnor;
-    int steps;
-    int hidden;
-    int truth;
-    float smooth;
-    float dot;
-    float angle;
-    float jitter;
-    float saturation;
-    float exposure;
-    float shift;
-    float ratio;
-    float learning_rate_scale;
-    float clip;
-    int noloss;
-    int softmax;
-    int classes;
-    int coords;
-    int background;
-    int rescore;
-    int objectness;
-    int joint;
-    int noadjust;
-    int reorg;
-    int log;
-    int tanh;
-    int *mask;
-    int total;
+    int batch_normalize = 0;
+    int shortcut = 0;
+    int batch = 0;
+    int forced = 0;
+    int flipped = 0;
+    int inputs = 0;
+    int outputs = 0;
+    int nweights = 0;
+    int nbiases = 0;
+    int extra = 0;
+    int truths = 0;
+    int h=0,w=0,c=0;
+    int out_h=0, out_w=0, out_c=0;
+    int n = 0;
+    int max_boxes = 0;
+    int groups = 0;
+    int size = 0;
+    int side = 0;
+    int stride = 0;
+    int reverse = 0;
+    int flatten = 0;
+    int spatial = 0;
+    int pad = 0;
+    int sqrt = 0;
+    int flip = 0;
+    int index = 0;
+    int binary = 0;
+    int xnor = 0;
+    int steps = 0;
+    int hidden = 0;
+    int truth = 0;
+    float smooth = 0;
+    float dot = 0;
+    float angle = 0;
+    float jitter = 0;
+    float saturation = 0;
+    float exposure = 0;
+    float shift = 0;
+    float ratio = 0;
+    float learning_rate_scale = 0;
+    float clip = 0;
+    int noloss = 0;
+    int softmax = 0;
+    int classes = 0;
+    int coords = 0;
+    int background = 0;
+    int rescore = 0;
+    int objectness = 0;
+    int joint = 0;
+    int noadjust = 0;
+    int reorg = 0;
+    int log = 0;
+    int tanh = 0;
+    int *mask = NULL;
+    int total = 0;
 
-    float alpha;
-    float beta;
-    float kappa;
+    float alpha = 0;
+    float beta = 0;
+    float kappa = 0;
 
-    float coord_scale;
-    float object_scale;
-    float noobject_scale;
-    float mask_scale;
-    float class_scale;
-    int bias_match;
-    int random;
-    float ignore_thresh;
-    float truth_thresh;
-    float thresh;
-    float focus;
-    int classfix;
-    int absolute;
+    float coord_scale = 0;
+    float object_scale = 0;
+    float noobject_scale = 0;
+    float mask_scale = 0;
+    float class_scale = 0;
+    int bias_match = 0;
+    int random = 0;
+    float ignore_thresh = 0;
+    float truth_thresh = 0;
+    float thresh = 0;
+    float focus = 0;
+    int classfix = 0;
+    int absolute = 0;
 
-    int onlyforward;
-    int stopbackward;
-    int dontload;
-    int dontsave;
-    int dontloadscales;
-    int numload;
+    int onlyforward = 0;
+    int stopbackward = 0;
+    int dontload = 0;
+    int dontsave = 0;
+    int dontloadscales = 0;
+    int numload = 0;
 
-    float temperature;
-    float probability;
-    float scale;
+    float temperature = 0;
+    float probability = 0;
+    float scale = 0;
 
-    char  * cweights;
-    int   * indexes;
-    int   * input_layers;
-    int   * input_sizes;
-    int   * map;
-    int   * counts;
-    float ** sums;
-    float * rand;
-    float * cost;
-    float * state;
-    float * prev_state;
-    float * forgot_state;
-    float * forgot_delta;
-    float * state_delta;
-    float * combine_cpu;
-    float * combine_delta_cpu;
+    char  * cweights = NULL;
+    int   * indexes = NULL;
+    int   * input_layers = NULL;
+    int   * input_sizes = NULL;
+    int   * map = NULL;
+    int   * counts = NULL;
+    float ** sums = NULL;
+    float * rand = NULL;
+    float * cost = NULL;
+    float * state = NULL;
+    float * prev_state = NULL;
+    float * forgot_state = NULL;
+    float * forgot_delta = NULL;
+    float * state_delta = NULL;
+    float * combine_cpu = NULL;
+    float * combine_delta_cpu = NULL;
 
-    float * concat;
-    float * concat_delta;
+    float * concat = NULL;
+    float * concat_delta = NULL;
 
-    float * binary_weights;
+    float * binary_weights = NULL;
 
-    float * biases;
-    float * bias_updates;
+    float * biases = NULL;
+    float * bias_updates = NULL;
 
-    float * scales;
-    float * scale_updates;
+    float * scales = NULL;
+    float * scale_updates = NULL;
 
-    float * weights;
-    float * weight_updates;
+    float * weights = NULL;
+    float * weight_updates = NULL;
 
-    float * delta;
-    float * output;
-    float * loss;
-    float * squared;
-    float * norms;
+    float * delta = NULL;
+    float * output = NULL;
+    float * loss = NULL;
+    float * squared = NULL;
+    float * norms = NULL;
 
-    float * spatial_mean;
-    float * mean;
-    float * variance;
+    float * spatial_mean = NULL;
+    float * mean = NULL;
+    float * variance = NULL;
 
-    float * mean_delta;
-    float * variance_delta;
+    float * mean_delta = NULL;
+    float * variance_delta = NULL;
 
-    float * rolling_mean;
-    float * rolling_variance;
+    float * rolling_mean = NULL;
+    float * rolling_variance = NULL;
 
-    float * x;
-    float * x_norm;
+    float * x = NULL;
+    float * x_norm = NULL;
 
-    float * m;
-    float * v;
+    float * m = NULL;
+    float * v = NULL;
     
-    float * bias_m;
-    float * bias_v;
-    float * scale_m;
-    float * scale_v;
+    float * bias_m = NULL;
+    float * bias_v = NULL;
+    float * scale_m = NULL;
+    float * scale_v = NULL;
 
 
-    float *z_cpu;
-    float *r_cpu;
-    float *h_cpu;
-    float * prev_state_cpu;
+    float *z_cpu = NULL;
+    float *r_cpu = NULL;
+    float *h_cpu = NULL;
+    float * prev_state_cpu = NULL;
 
-    float *temp_cpu;
-    float *temp2_cpu;
-    float *temp3_cpu;
+    float *temp_cpu = NULL;
+    float *temp2_cpu = NULL;
+    float *temp3_cpu = NULL;
 
-    float *dh_cpu;
-    float *hh_cpu;
-    float *prev_cell_cpu;
-    float *cell_cpu;
-    float *f_cpu;
-    float *i_cpu;
-    float *g_cpu;
-    float *o_cpu;
-    float *c_cpu;
-    float *dc_cpu; 
+    float *dh_cpu = NULL;
+    float *hh_cpu = NULL;
+    float *prev_cell_cpu = NULL;
+    float *cell_cpu = NULL;
+    float *f_cpu = NULL;
+    float *i_cpu = NULL;
+    float *g_cpu = NULL;
+    float *o_cpu = NULL;
+    float *c_cpu = NULL;
+    float *dc_cpu = NULL; 
 
-    float * binary_input;
+    float * binary_input = NULL;
 
-    struct layer *input_layer;
-    struct layer *self_layer;
-    struct layer *output_layer;
+    struct layer *input_layer = NULL;
+    struct layer *self_layer = NULL;
+    struct layer *output_layer = NULL;
 
-    struct layer *reset_layer;
-    struct layer *update_layer;
-    struct layer *state_layer;
+    struct layer *reset_layer = NULL;
+    struct layer *update_layer = NULL;
+    struct layer *state_layer = NULL;
 
-    struct layer *input_gate_layer;
-    struct layer *state_gate_layer;
-    struct layer *input_save_layer;
-    struct layer *state_save_layer;
-    struct layer *input_state_layer;
-    struct layer *state_state_layer;
+    struct layer *input_gate_layer = NULL;
+    struct layer *state_gate_layer = NULL;
+    struct layer *input_save_layer = NULL;
+    struct layer *state_save_layer = NULL;
+    struct layer *input_state_layer = NULL;
+    struct layer *state_state_layer = NULL;
 
-    struct layer *input_z_layer;
-    struct layer *state_z_layer;
+    struct layer *input_z_layer = NULL;
+    struct layer *state_z_layer = NULL;
 
-    struct layer *input_r_layer;
-    struct layer *state_r_layer;
+    struct layer *input_r_layer = NULL;
+    struct layer *state_r_layer = NULL;
 
-    struct layer *input_h_layer;
-    struct layer *state_h_layer;
+    struct layer *input_h_layer = NULL;
+    struct layer *state_h_layer = NULL;
 	
-    struct layer *wz;
-    struct layer *uz;
-    struct layer *wr;
-    struct layer *ur;
-    struct layer *wh;
-    struct layer *uh;
-    struct layer *uo;
-    struct layer *wo;
-    struct layer *uf;
-    struct layer *wf;
-    struct layer *ui;
-    struct layer *wi;
-    struct layer *ug;
-    struct layer *wg;
+    struct layer *wz = NULL;
+    struct layer *uz = NULL;
+    struct layer *wr = NULL;
+    struct layer *ur = NULL;
+    struct layer *wh = NULL;
+    struct layer *uh = NULL;
+    struct layer *uo = NULL;
+    struct layer *wo = NULL;
+    struct layer *uf = NULL;
+    struct layer *wf = NULL;
+    struct layer *ui = NULL;
+    struct layer *wi = NULL;
+    struct layer *ug = NULL;
+    struct layer *wg = NULL;
 
-    tree *softmax_tree;
+    tree *softmax_tree = NULL;
 
-    size_t workspace_size;
+    size_t workspace_size = 0;
 
 #ifdef GPU
-    int *indexes_gpu;
+    int *indexes_gpu = NULL;
 
-    float *z_gpu;
-    float *r_gpu;
-    float *h_gpu;
+    float *z_gpu = NULL;
+    float *r_gpu = NULL;
+    float *h_gpu = NULL;
 
-    float *temp_gpu;
-    float *temp2_gpu;
-    float *temp3_gpu;
+    float *temp_gpu = NULL;
+    float *temp2_gpu = NULL;
+    float *temp3_gpu = NULL;
 
-    float *dh_gpu;
-    float *hh_gpu;
-    float *prev_cell_gpu;
-    float *cell_gpu;
-    float *f_gpu;
-    float *i_gpu;
-    float *g_gpu;
-    float *o_gpu;
-    float *c_gpu;
-    float *dc_gpu; 
+    float *dh_gpu = NULL;
+    float *hh_gpu = NULL;
+    float *prev_cell_gpu = NULL;
+    float *cell_gpu = NULL;
+    float *f_gpu = NULL;
+    float *i_gpu = NULL;
+    float *g_gpu = NULL;
+    float *o_gpu = NULL;
+    float *c_gpu = NULL;
+    float *dc_gpu = NULL; 
 
-    float *m_gpu;
-    float *v_gpu;
-    float *bias_m_gpu;
-    float *scale_m_gpu;
-    float *bias_v_gpu;
-    float *scale_v_gpu;
+    float *m_gpu = NULL;
+    float *v_gpu = NULL;
+    float *bias_m_gpu = NULL;
+    float *scale_m_gpu = NULL;
+    float *bias_v_gpu = NULL;
+    float *scale_v_gpu = NULL;
 
-    float * combine_gpu;
-    float * combine_delta_gpu;
+    float * combine_gpu = NULL;
+    float * combine_delta_gpu = NULL;
 
-    float * prev_state_gpu;
-    float * forgot_state_gpu;
-    float * forgot_delta_gpu;
-    float * state_gpu;
-    float * state_delta_gpu;
-    float * gate_gpu;
-    float * gate_delta_gpu;
-    float * save_gpu;
-    float * save_delta_gpu;
-    float * concat_gpu;
-    float * concat_delta_gpu;
+    float * prev_state_gpu = NULL;
+    float * forgot_state_gpu = NULL;
+    float * forgot_delta_gpu = NULL;
+    float * state_gpu = NULL;
+    float * state_delta_gpu = NULL;
+    float * gate_gpu = NULL;
+    float * gate_delta_gpu = NULL;
+    float * save_gpu = NULL;
+    float * save_delta_gpu = NULL;
+    float * concat_gpu = NULL;
+    float * concat_delta_gpu = NULL;
 
-    float * binary_input_gpu;
-    float * binary_weights_gpu;
+    float * binary_input_gpu = NULL;
+    float * binary_weights_gpu = NULL;
 
-    float * mean_gpu;
-    float * variance_gpu;
+    float * mean_gpu = NULL;
+    float * variance_gpu = NULL;
 
-    float * rolling_mean_gpu;
-    float * rolling_variance_gpu;
+    float * rolling_mean_gpu = NULL;
+    float * rolling_variance_gpu = NULL;
 
-    float * variance_delta_gpu;
-    float * mean_delta_gpu;
+    float * variance_delta_gpu = NULL;
+    float * mean_delta_gpu = NULL;
 
-    float * x_gpu;
-    float * x_norm_gpu;
-    float * weights_gpu;
-    float * weight_updates_gpu;
-    float * weight_change_gpu;
+    float * x_gpu = NULL;
+    float * x_norm_gpu = NULL;
+    float * weights_gpu = NULL;
+    float * weight_updates_gpu = NULL;
+    float * weight_change_gpu = NULL;
 
-    float * biases_gpu;
-    float * bias_updates_gpu;
-    float * bias_change_gpu;
+    float * biases_gpu = NULL;
+    float * bias_updates_gpu = NULL;
+    float * bias_change_gpu = NULL;
 
-    float * scales_gpu;
-    float * scale_updates_gpu;
-    float * scale_change_gpu;
+    float * scales_gpu = NULL;
+    float * scale_updates_gpu = NULL;
+    float * scale_change_gpu = NULL;
 
-    float * output_gpu;
-    float * loss_gpu;
-    float * delta_gpu;
-    float * rand_gpu;
-    float * squared_gpu;
-    float * norms_gpu;
+    float * output_gpu = NULL;
+    float * loss_gpu = NULL;
+    float * delta_gpu = NULL;
+    float * rand_gpu = NULL;
+    float * squared_gpu = NULL;
+    float * norms_gpu = NULL;
 #ifdef CUDNN
     cudnnTensorDescriptor_t srcTensorDesc, dstTensorDesc;
     cudnnTensorDescriptor_t dsrcTensorDesc, ddstTensorDesc;
@@ -428,116 +428,119 @@ typedef enum {
 } learning_rate_policy;
 
 typedef struct network{
-    int n;
-    int batch;
-    size_t *seen;
-    int *t;
-    float epoch;
-    int subdivisions;
-    layer *layers;
-    float *output;
+    int n = 0;
+    int batch = 0;
+    size_t *seen = NULL;
+    int *t = NULL;
+    float epoch = 0;
+    int subdivisions = 0;
+    layer *layers = NULL;
+    float *output = NULL;
     learning_rate_policy policy;
 
-    float learning_rate;
-    float momentum;
-    float decay;
-    float gamma;
-    float scale;
-    float power;
-    int time_steps;
-    int step;
-    int max_batches;
-    float *scales;
-    int   *steps;
-    int num_steps;
-    int burn_in;
+    float learning_rate = 0;
+    float momentum = 0;
+    float decay = 0;
+    float gamma = 0;
+    float scale = 0;
+    float power = 0;
+    int time_steps = 0;
+    int step = 0;
+    int max_batches = 0;
+    float *scales = NULL;
+    int   *steps = NULL;
+    int num_steps = 0;
+    int burn_in = 0;
 
-    int adam;
-    float B1;
-    float B2;
-    float eps;
+    int adam = 0;
+    float B1 = 0;
+    float B2 = 0;
+    float eps = 0;
 
-    int inputs;
-    int outputs;
-    int truths;
-    int notruth;
-    int h, w, c;
-    int max_crop;
-    int min_crop;
-    float max_ratio;
-    float min_ratio;
-    int center;
-    float angle;
-    float aspect;
-    float exposure;
-    float saturation;
-    float hue;
-    int random;
+    int inputs = 0;
+    int outputs = 0;
+    int truths = 0;
+    int notruth = 0;
+    int h=0, w=0, c=0;
+    int max_crop = 0;
+    int min_crop = 0;
+    float max_ratio = 0;
+    float min_ratio = 0;
+    int center = 0;
+    float angle = 0;
+    float aspect = 0;
+    float exposure = 0;
+    float saturation = 0;
+    float hue = 0;
+    int random = 0;
 
-    int gpu_index;
-    tree *hierarchy;
+    int gpu_index =0;
+    tree *hierarchy = NULL;
 
-    float *input;
-    float *truth;
-    float *delta;
-    float *workspace;
-    int train;
-    int index;
-    float *cost;
-    float clip;
+    float *input = NULL;
+    float *truth = NULL;
+    float *delta = NULL;
+    float *workspace = NULL;
+    int train = 0;
+    int index = 0;
+    float *cost = NULL;
+    float clip = 0;
 
 #ifdef GPU
-    float *input_gpu;
-    float *truth_gpu;
-    float *delta_gpu;
-    float *output_gpu;
+    float *input_gpu = NULL;
+    float *truth_gpu = NULL;
+    float *delta_gpu = NULL;
+    float *output_gpu = NULL;
 #endif
 
 } network;
 
 typedef struct {
-    int w;
-    int h;
-    float scale;
-    float rad;
-    float dx;
-    float dy;
-    float aspect;
+    int w = 0;
+    int h = 0;
+    float scale = 0;
+    float rad = 0;
+    float dx = 0;
+    float dy = 0;
+    float aspect = 0;
 } augment_args;
 
 typedef struct {
-    int w;
-    int h;
-    int c;
-    float *data;
+    int w = 0;
+    int h = 0;
+    int c = 0;
+    float *data = NULL;
 } image;
 
 typedef struct{
-    float x, y, w, h;
+    float x = 0;
+    float y = 0;
+    float w = 0;
+    float h = 0;
 } box;
 
 typedef struct detection{
     box bbox;
-    int classes;
-    float *prob;
-    float *mask;
-    float objectness;
-    int sort_class;
+    int classes = 0;
+    float *prob = NULL;
+    float *mask = NULL;
+    float objectness = 0;
+    int sort_class = 0;
 } detection;
 
 typedef struct matrix{
-    int rows, cols;
-    float **vals;
+    int rows = 0, cols = 0;
+    float **vals = NULL;
 } matrix;
 
 
 typedef struct{
-    int w, h;
+    int w=0, h=0;
     matrix X;
     matrix y;
-    int shallow;
-    int *num_boxes;
-    box **boxes;
+    int shallow = 0;
+    int *num_boxes = NULL;
+    box **boxes = NULL;
 } data;
 
 typedef enum {
@@ -545,42 +548,42 @@ typedef enum {
 } data_type;
 
 typedef struct load_args{
-    int threads;
-    char **paths;
-    char *path;
-    int n;
-    int m;
-    char **labels;
-    int h;
-    int w;
-    int out_w;
-    int out_h;
-    int nh;
-    int nw;
-    int num_boxes;
-    int min, max, size;
-    int classes;
-    int background;
-    int scale;
-    int center;
-    int coords;
-    float jitter;
-    float angle;
-    float aspect;
-    float saturation;
-    float exposure;
-    float hue;
-    data *d;
-    image *im;
-    image *resized;
+    int threads = 0;
+    char **paths = NULL;
+    char *path = NULL;
+    int n = 0;
+    int m = 0;
+    char **labels = NULL;
+    int h = 0;
+    int w = 0;
+    int out_w = 0;
+    int out_h = 0;
+    int nh = 0;
+    int nw = 0;
+    int num_boxes = 0;
+    int min=0, max=0, size=0;
+    int classes = 0;
+    int background = 0;
+    int scale = 0;
+    int center = 0;
+    int coords = 0;
+    float jitter = 0;
+    float angle = 0;
+    float aspect = 0;
+    float saturation = 0;
+    float exposure = 0;
+    float hue = 0;
+    data *d = NULL;
+    image *im = NULL;
+    image *resized = NULL;
     data_type type;
-    tree *hierarchy;
+    tree *hierarchy = NULL;
 } load_args;
 
 typedef struct{
-    int id;
-    float x,y,w,h;
-    float left, right, top, bottom;
+    int id = 0;
+    float x=0,y=0,w=0,h=0;
+    float left=0, right=0, top=0, bottom=0;
 } box_label;
 
 
@@ -590,15 +593,15 @@ load_args get_base_args(network *net);
 void free_data(data d);
 
 typedef struct node{
-    void *val;
-    struct node *next;
-    struct node *prev;
+    void *val = NULL;
+    struct node *next = NULL;
+    struct node *prev = NULL;
 } node;
 
 typedef struct list{
-    int size;
-    node *front;
-    node *back;
+    int size = 0;
+    node *front = NULL;
+    node *back = NULL;
 } list;
 
 pthread_t load_data(load_args args);
@@ -629,12 +632,12 @@ void fill_gpu(int N, float ALPHA, float * X, int INCX);
 void scal_gpu(int N, float ALPHA, float * X, int INCX);
 void copy_gpu(int N, float * X, int INCX, float * Y, int INCY);
 
-void cuda_set_device(int n);
-void cuda_free(float *x_gpu);
-float *cuda_make_array(float *x, size_t n);
-void cuda_pull_array(float *x_gpu, float *x, size_t n);
-float cuda_mag_array(float *x_gpu, size_t n);
-void cuda_push_array(float *x_gpu, float *x, size_t n);
+void hip_set_device(int n);
+void hip_free(float *x_gpu);
+float *hip_make_array(float *x, size_t n);
+void hip_pull_array(float *x_gpu, float *x, size_t n);
+float hip_mag_array(float *x_gpu, size_t n);
+void hip_push_array(float *x_gpu, float *x, size_t n);
 
 void forward_network_gpu(network *net);
 void backward_network_gpu(network *net);

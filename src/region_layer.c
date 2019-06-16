@@ -12,7 +12,7 @@
 
 layer make_region_layer(int batch, int w, int h, int n, int classes, int coords)
 {
-    layer l = {0};
+    layer l;
     l.type = REGION;
 
     l.n = n;
@@ -25,14 +25,14 @@ layer make_region_layer(int batch, int w, int h, int n, int classes, int coords)
     l.out_c = l.c;
     l.classes = classes;
     l.coords = coords;
-    l.cost = calloc(1, sizeof(float));
-    l.biases = calloc(n*2, sizeof(float));
-    l.bias_updates = calloc(n*2, sizeof(float));
+    l.cost = (float *)calloc(1, sizeof(float));
+    l.biases = (float *)calloc(n*2, sizeof(float));
+    l.bias_updates = (float *)calloc(n*2, sizeof(float));
     l.outputs = h*w*n*(classes + coords + 1);
     l.inputs = l.outputs;
     l.truths = 30*(l.coords + 1);
-    l.delta = calloc(batch*l.outputs, sizeof(float));
-    l.output = calloc(batch*l.outputs, sizeof(float));
+    l.delta = (float *)calloc(batch*l.outputs, sizeof(float));
+    l.output = (float *)calloc(batch*l.outputs, sizeof(float));
     int i;
     for(i = 0; i < n*2; ++i){
         l.biases[i] = .5;
@@ -43,8 +43,8 @@ layer make_region_layer(int batch, int w, int h, int n, int classes, int coords)
 #ifdef GPU
     l.forward_gpu = forward_region_layer_gpu;
     l.backward_gpu = backward_region_layer_gpu;
-    l.output_gpu = cuda_make_array(l.output, batch*l.outputs);
-    l.delta_gpu = cuda_make_array(l.delta, batch*l.outputs);
+    l.output_gpu = hip_make_array(l.output, batch*l.outputs);
+    l.delta_gpu = hip_make_array(l.delta, batch*l.outputs);
 #endif
 
     fprintf(stderr, "detection\n");
@@ -61,15 +61,15 @@ void resize_region_layer(layer *l, int w, int h)
     l->outputs = h*w*l->n*(l->classes + l->coords + 1);
     l->inputs = l->outputs;
 
-    l->output = realloc(l->output, l->batch*l->outputs*sizeof(float));
-    l->delta = realloc(l->delta, l->batch*l->outputs*sizeof(float));
+    l->output = (float *)realloc(l->output, l->batch*l->outputs*sizeof(float));
+    l->delta = (float *)realloc(l->delta, l->batch*l->outputs*sizeof(float));
 
 #ifdef GPU
-    cuda_free(l->delta_gpu);
-    cuda_free(l->output_gpu);
+    hip_free(l->delta_gpu);
+    hip_free(l->output_gpu);
 
-    l->delta_gpu =     cuda_make_array(l->delta, l->batch*l->outputs);
-    l->output_gpu =    cuda_make_array(l->output, l->batch*l->outputs);
+    l->delta_gpu =     hip_make_array(l->delta, l->batch*l->outputs);
+    l->output_gpu =    hip_make_array(l->output, l->batch*l->outputs);
 #endif
 }
 
@@ -109,31 +109,31 @@ void delta_region_mask(float *truth, float *x, int n, int index, float *delta, i
 }
 
 
-void delta_region_class(float *output, float *delta, int index, int class, int classes, tree *hier, float scale, int stride, float *avg_cat, int tag)
+void delta_region_class(float *output, float *delta, int index, int class_id, int classes, tree *hier, float scale, int stride, float *avg_cat, int tag)
 {
     int i, n;
     if(hier){
         float pred = 1;
-        while(class >= 0){
-            pred *= output[index + stride*class];
-            int g = hier->group[class];
+        while(class_id >= 0){
+            pred *= output[index + stride*class_id];
+            int g = hier->group[class_id];
             int offset = hier->group_offset[g];
             for(i = 0; i < hier->group_size[g]; ++i){
                 delta[index + stride*(offset + i)] = scale * (0 - output[index + stride*(offset + i)]);
             }
-            delta[index + stride*class] = scale * (1 - output[index + stride*class]);
+            delta[index + stride*class_id] = scale * (1 - output[index + stride*class_id]);
 
-            class = hier->parent[class];
+            class_id = hier->parent[class_id];
         }
         *avg_cat += pred;
     } else {
         if (delta[index] && tag){
-            delta[index + stride*class] = scale * (1 - output[index + stride*class]);
+            delta[index + stride*class_id] = scale * (1 - output[index + stride*class_id]);
             return;
         }
         for(n = 0; n < classes; ++n){
-            delta[index + stride*n] = scale * (((n == class)?1 : 0) - output[index + stride*n]);
-            if(n == class) *avg_cat += output[index + stride*n];
+            delta[index + stride*n] = scale * (((n == class_id)?1 : 0) - output[index + stride*n]);
+            if(n == class_id) *avg_cat += output[index + stride*n];
         }
     }
 }
@@ -201,7 +201,7 @@ void forward_region_layer(const layer l, network net)
             for(t = 0; t < 30; ++t){
                 box truth = float_to_box(net.truth + t*(l.coords + 1) + b*l.truths, 1);
                 if(!truth.x) break;
-                int class = net.truth[t*(l.coords + 1) + b*l.truths + l.coords];
+                int class_id = net.truth[t*(l.coords + 1) + b*l.truths + l.coords];
                 float maxp = 0;
                 int maxi = 0;
                 if(truth.x > 100000 && truth.y > 100000){
@@ -210,7 +210,7 @@ void forward_region_layer(const layer l, network net)
                         int obj_index = entry_index(l, b, n, l.coords);
                         float scale =  l.output[obj_index];
                         l.delta[obj_index] = l.noobject_scale * (0 - l.output[obj_index]);
-                        float p = scale*get_hierarchy_probability(l.output + class_index, l.softmax_tree, class, l.w*l.h);
+                        float p = scale*get_hierarchy_probability(l.output + class_index, l.softmax_tree, class_id, l.w*l.h);
                         if(p > maxp){
                             maxp = p;
                             maxi = n;
@@ -218,7 +218,7 @@ void forward_region_layer(const layer l, network net)
                     }
                     int class_index = entry_index(l, b, maxi, l.coords + 1);
                     int obj_index = entry_index(l, b, maxi, l.coords);
-                    delta_region_class(l.output, l.delta, class_index, class, l.classes, l.softmax_tree, l.class_scale, l.w*l.h, &avg_cat, !l.softmax);
+                    delta_region_class(l.output, l.delta, class_index, class_id, l.classes, l.softmax_tree, l.class_scale, l.w*l.h, &avg_cat, !l.softmax);
                     if(l.output[obj_index] < .3) l.delta[obj_index] = l.object_scale * (.3 - l.output[obj_index]);
                     else  l.delta[obj_index] = 0;
                     l.delta[obj_index] = 0;
@@ -252,7 +252,7 @@ void forward_region_layer(const layer l, network net)
                     }
 
                     if(*(net.seen) < 12800){
-                        box truth = {0};
+                        box truth;
                         truth.x = (i + .5)/l.w;
                         truth.y = (j + .5)/l.h;
                         truth.w = l.biases[2*n]/l.w;
@@ -308,10 +308,10 @@ void forward_region_layer(const layer l, network net)
                 l.delta[obj_index] = l.object_scale * (0 - l.output[obj_index]);
             }
 
-            int class = net.truth[t*(l.coords + 1) + b*l.truths + l.coords];
-            if (l.map) class = l.map[class];
+            int class_id = net.truth[t*(l.coords + 1) + b*l.truths + l.coords];
+            if (l.map) class_id = l.map[class_id];
             int class_index = entry_index(l, b, best_n*l.w*l.h + j*l.w + i, l.coords + 1);
-            delta_region_class(l.output, l.delta, class_index, class, l.classes, l.softmax_tree, l.class_scale, l.w*l.h, &avg_cat, !l.softmax);
+            delta_region_class(l.output, l.delta, class_index, class_id, l.classes, l.softmax_tree, l.class_scale, l.w*l.h, &avg_cat, !l.softmax);
             ++count;
             ++class_count;
         }
@@ -464,15 +464,15 @@ void forward_region_layer_gpu(const layer l, network net)
         softmax_gpu(net.input_gpu + index, l.classes + l.background, l.batch*l.n, l.inputs/l.n, l.w*l.h, 1, l.w*l.h, 1, l.output_gpu + index);
     }
     if(!net.train || l.onlyforward){
-        cuda_pull_array(l.output_gpu, l.output, l.batch*l.outputs);
+        hip_pull_array(l.output_gpu, l.output, l.batch*l.outputs);
         return;
     }
 
-    cuda_pull_array(l.output_gpu, net.input, l.batch*l.inputs);
+    hip_pull_array(l.output_gpu, net.input, l.batch*l.inputs);
     forward_region_layer(l, net);
-    //cuda_push_array(l.output_gpu, l.output, l.batch*l.outputs);
+    //hip_push_array(l.output_gpu, l.output, l.batch*l.outputs);
     if(!net.train) return;
-    cuda_push_array(l.delta_gpu, l.delta, l.batch*l.outputs);
+    hip_push_array(l.delta_gpu, l.delta, l.batch*l.outputs);
 }
 
 void backward_region_layer_gpu(const layer l, network net)

@@ -30,7 +30,7 @@ void gemm_bin(int M, int N, int K, float ALPHA,
 float *random_matrix(int rows, int cols)
 {
     int i;
-    float *m = calloc(rows*cols, sizeof(float));
+    float *m = (float *)calloc(rows*cols, sizeof(float));
     for(i = 0; i < rows*cols; ++i){
         m[i] = (float)rand()/RAND_MAX;
     }
@@ -175,10 +175,10 @@ void gemm_gpu(int TA, int TB, int M, int N, int K, float ALPHA,
         float BETA,
         float *C_gpu, int ldc)
 {
-    cublasHandle_t handle = blas_handle();
-    cudaError_t status = cublasSgemm(handle, (TB ? CUBLAS_OP_T : CUBLAS_OP_N), 
-            (TA ? CUBLAS_OP_T : CUBLAS_OP_N), N, M, K, &ALPHA, B_gpu, ldb, A_gpu, lda, &BETA, C_gpu, ldc);
-    check_error(status);
+    rocblas_handle handle = blas_handle();
+    rocblas_status status = rocblas_sgemm(handle, (TB ? rocblas_operation_transpose : rocblas_operation_none), 
+            (TA ? rocblas_operation_transpose : rocblas_operation_none), N, M, K, &ALPHA, B_gpu, ldb, A_gpu, lda, &BETA, C_gpu, ldc);
+    assert(status == rocblas_status_success);
 }
 
 #include <stdio.h>
@@ -221,24 +221,24 @@ void time_gpu(int TA, int TB, int m, int k, int n)
 
     float *c = random_matrix(m,n);
 
-    float *a_cl = cuda_make_array(a, m*k);
-    float *b_cl = cuda_make_array(b, k*n);
-    float *c_cl = cuda_make_array(c, m*n);
+    float *a_cl = hip_make_array(a, m*k);
+    float *b_cl = hip_make_array(b, k*n);
+    float *c_cl = hip_make_array(c, m*n);
 
     int i;
     clock_t start = clock(), end;
     for(i = 0; i<iter; ++i){
         gemm_gpu(TA,TB,m,n,k,1,a_cl,lda,b_cl,ldb,1,c_cl,n);
-        cudaThreadSynchronize();
+        hipDeviceSynchronize();
     }
     double flop = ((double)m)*n*(2.*k + 2.)*iter;
     double gflop = flop/pow(10., 9);
     end = clock();
     double seconds = sec(end-start);
     printf("Matrix Multiplication %dx%d * %dx%d, TA=%d, TB=%d: %lf s, %lf GFLOPS\n",m,k,k,n, TA, TB, seconds, gflop/seconds);
-    cuda_free(a_cl);
-    cuda_free(b_cl);
-    cuda_free(c_cl);
+    hip_free(a_cl);
+    hip_free(b_cl);
+    hip_free(c_cl);
     free(a);
     free(b);
     free(c);

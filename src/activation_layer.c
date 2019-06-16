@@ -11,15 +11,15 @@
 
 layer make_activation_layer(int batch, int inputs, ACTIVATION activation)
 {
-    layer l = {0};
+    layer l;
     l.type = ACTIVE;
 
     l.inputs = inputs;
     l.outputs = inputs;
     l.batch=batch;
 
-    l.output = calloc(batch*inputs, sizeof(float*));
-    l.delta = calloc(batch*inputs, sizeof(float*));
+    l.output = (float *)calloc(batch*inputs, sizeof(float*));
+    l.delta = (float *)calloc(batch*inputs, sizeof(float*));
 
     l.forward = forward_activation_layer;
     l.backward = backward_activation_layer;
@@ -27,8 +27,8 @@ layer make_activation_layer(int batch, int inputs, ACTIVATION activation)
     l.forward_gpu = forward_activation_layer_gpu;
     l.backward_gpu = backward_activation_layer_gpu;
 
-    l.output_gpu = cuda_make_array(l.output, inputs*batch);
-    l.delta_gpu = cuda_make_array(l.delta, inputs*batch);
+    l.output_gpu = hip_make_array(l.output, inputs*batch);
+    l.delta_gpu = hip_make_array(l.delta, inputs*batch);
 #endif
     l.activation = activation;
     fprintf(stderr, "Activation Layer: %d inputs\n", inputs);

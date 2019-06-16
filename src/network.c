@@ -34,7 +34,7 @@
 
 load_args get_base_args(network *net)
 {
-    load_args args = {0};
+    load_args args;
     args.w = net->w;
     args.h = net->h;
     args.size = net->w;
@@ -176,12 +176,12 @@ char *get_layer_string(LAYER_TYPE a)
 
 network *make_network(int n)
 {
-    network *net = calloc(1, sizeof(network));
+    network *net = (network *)calloc(1, sizeof(network));
     net->n = n;
-    net->layers = calloc(net->n, sizeof(layer));
-    net->seen = calloc(1, sizeof(size_t));
-    net->t    = calloc(1, sizeof(int));
-    net->cost = calloc(1, sizeof(float));
+    net->layers = (layer *)calloc(net->n, sizeof(layer));
+    net->seen = (size_t *)calloc(1, sizeof(size_t));
+    net->t    = (int *)calloc(1, sizeof(int));
+    net->cost = (float *)calloc(1, sizeof(float));
     return net;
 }
 
@@ -220,7 +220,7 @@ void update_network(network *netp)
 #endif
     network net = *netp;
     int i;
-    update_args a = {0};
+    update_args a;
     a.batch = net.batch*net.subdivisions;
     a.learning_rate = get_current_rate(netp);
     a.momentum = net.momentum;
@@ -358,8 +358,8 @@ void set_batch_network(network *net, int b)
 int resize_network(network *net, int w, int h)
 {
 #ifdef GPU
-    cuda_set_device(net->gpu_index);
-    cuda_free(net->workspace);
+    hip_set_device(net->gpu_index);
+    hip_free(net->workspace);
 #endif
     int i;
     //if(w == net->w && h == net->h) return 0;
@@ -414,24 +414,24 @@ int resize_network(network *net, int w, int h)
     net->output = out.output;
     free(net->input);
     free(net->truth);
-    net->input = calloc(net->inputs*net->batch, sizeof(float));
-    net->truth = calloc(net->truths*net->batch, sizeof(float));
+    net->input = (float *)calloc(net->inputs*net->batch, sizeof(float));
+    net->truth = (float *)calloc(net->truths*net->batch, sizeof(float));
 #ifdef GPU
     if(gpu_index >= 0){
-        cuda_free(net->input_gpu);
-        cuda_free(net->truth_gpu);
-        net->input_gpu = cuda_make_array(net->input, net->inputs*net->batch);
-        net->truth_gpu = cuda_make_array(net->truth, net->truths*net->batch);
+        hip_free(net->input_gpu);
+        hip_free(net->truth_gpu);
+        net->input_gpu = hip_make_array(net->input, net->inputs*net->batch);
+        net->truth_gpu = hip_make_array(net->truth, net->truths*net->batch);
         if(workspace_size){
-            net->workspace = cuda_make_array(0, (workspace_size-1)/sizeof(float)+1);
+            net->workspace = hip_make_array(0, (workspace_size-1)/sizeof(float)+1);
         }
     }else {
         free(net->workspace);
-        net->workspace = calloc(1, workspace_size);
+        net->workspace = (float *)calloc(1, workspace_size);
     }
 #else
     free(net->workspace);
-    net->workspace = calloc(1, workspace_size);
+    net->workspace = (float *)calloc(1, workspace_size);
 #endif
     //fprintf(stderr, " Done!\n");
     return 0;
@@ -446,7 +446,7 @@ layer get_network_detection_layer(network *net)
         }
     }
     fprintf(stderr, "Detection layer not found!!\n");
-    layer l = {0};
+    layer l;
     return l;
 }
 
@@ -454,12 +454,12 @@ image get_network_image_layer(network *net, int i)
 {
     layer l = net->layers[i];
 #ifdef GPU
-    //cuda_pull_array(l.output_gpu, l.output, l.outputs);
+    //hip_pull_array(l.output_gpu, l.output, l.outputs);
 #endif
     if (l.out_w && l.out_h && l.out_c){
         return float_to_image(l.out_w, l.out_h, l.out_c, l.output);
     }
-    image def = {0};
+    image def;
     return def;
 }
 
@@ -470,7 +470,7 @@ image get_network_image(network *net)
         image m = get_network_image_layer(net, i);
         if(m.h != 0) return m;
     }
-    image def = {0};
+    image def;
     return def;
 }
 
@@ -529,11 +529,11 @@ detection *make_network_boxes(network *net, float thresh, int *num)
     int i;
     int nboxes = num_detections(net, thresh);
     if(num) *num = nboxes;
-    detection *dets = calloc(nboxes, sizeof(detection));
+    detection *dets = (detection *)calloc(nboxes, sizeof(detection));
     for(i = 0; i < nboxes; ++i){
-        dets[i].prob = calloc(l.classes, sizeof(float));
+        dets[i].prob = (float *)calloc(l.classes, sizeof(float));
         if(l.coords > 4){
-            dets[i].mask = calloc(l.coords-4, sizeof(float));
+            dets[i].mask = (float *)calloc(l.coords-4, sizeof(float));
         }
     }
     return dets;
@@ -593,7 +593,7 @@ matrix network_predict_data_multi(network *net, data test, int n)
     int i,j,b,m;
     int k = net->outputs;
     matrix pred = make_matrix(test.X.rows, k);
-    float *X = calloc(net->batch*test.X.rows, sizeof(float));
+    float *X = (float *)calloc(net->batch*test.X.rows, sizeof(float));
     for(i = 0; i < test.X.rows; i += net->batch){
         for(b = 0; b < net->batch; ++b){
             if(i+b == test.X.rows) break;
@@ -618,7 +618,7 @@ matrix network_predict_data(network *net, data test)
     int i,j,b;
     int k = net->outputs;
     matrix pred = make_matrix(test.X.rows, k);
-    float *X = calloc(net->batch*test.X.cols, sizeof(float));
+    float *X = (float *)calloc(net->batch*test.X.cols, sizeof(float));
     for(i = 0; i < test.X.rows; i += net->batch){
         for(b = 0; b < net->batch; ++b){
             if(i+b == test.X.rows) break;
@@ -723,8 +723,8 @@ void free_network(network *net)
     if(net->input) free(net->input);
     if(net->truth) free(net->truth);
 #ifdef GPU
-    if(net->input_gpu) cuda_free(net->input_gpu);
-    if(net->truth_gpu) cuda_free(net->truth_gpu);
+    if(net->input_gpu) hip_free(net->input_gpu);
+    if(net->truth_gpu) hip_free(net->truth_gpu);
 #endif
     free(net);
 }
@@ -762,10 +762,10 @@ float *network_output(network *net)
 void forward_network_gpu(network *netp)
 {
     network net = *netp;
-    cuda_set_device(net.gpu_index);
-    cuda_push_array(net.input_gpu, net.input, net.inputs*net.batch);
+    hip_set_device(net.gpu_index);
+    hip_push_array(net.input_gpu, net.input, net.inputs*net.batch);
     if(net.truth){
-        cuda_push_array(net.truth_gpu, net.truth, net.truths*net.batch);
+        hip_push_array(net.truth_gpu, net.truth, net.truths*net.batch);
     }
 
     int i;
@@ -792,7 +792,7 @@ void backward_network_gpu(network *netp)
     int i;
     network net = *netp;
     network orig = net;
-    cuda_set_device(net.gpu_index);
+    hip_set_device(net.gpu_index);
     for(i = net.n-1; i >= 0; --i){
         layer l = net.layers[i];
         if(l.stopbackward) break;
@@ -813,9 +813,9 @@ void backward_network_gpu(network *netp)
 void update_network_gpu(network *netp)
 {
     network net = *netp;
-    cuda_set_device(net.gpu_index);
+    hip_set_device(net.gpu_index);
     int i;
-    update_args a = {0};
+    update_args a;
     a.batch = net.batch*net.subdivisions;
     a.learning_rate = get_current_rate(netp);
     a.momentum = net.momentum;
@@ -838,7 +838,7 @@ void update_network_gpu(network *netp)
 void harmless_update_network_gpu(network *netp)
 {
     network net = *netp;
-    cuda_set_device(net.gpu_index);
+    hip_set_device(net.gpu_index);
     int i;
     for(i = 0; i < net.n; ++i){
         layer l = net.layers[i];
@@ -858,7 +858,7 @@ void *train_thread(void *ptr)
 {
     train_args args = *(train_args*)ptr;
     free(ptr);
-    cuda_set_device(args.net->gpu_index);
+    hip_set_device(args.net->gpu_index);
     *args.err = train_network(args.net, args.d);
     return 0;
 }
@@ -906,36 +906,36 @@ void scale_weights(layer l, float s)
 void pull_weights(layer l)
 {
     if(l.type == CONVOLUTIONAL || l.type == DECONVOLUTIONAL){
-        cuda_pull_array(l.biases_gpu, l.bias_updates, l.n);
-        cuda_pull_array(l.weights_gpu, l.weight_updates, l.nweights);
-        if(l.scales) cuda_pull_array(l.scales_gpu, l.scale_updates, l.n);
+        hip_pull_array(l.biases_gpu, l.bias_updates, l.n);
+        hip_pull_array(l.weights_gpu, l.weight_updates, l.nweights);
+        if(l.scales) hip_pull_array(l.scales_gpu, l.scale_updates, l.n);
     } else if(l.type == CONNECTED){
-        cuda_pull_array(l.biases_gpu, l.bias_updates, l.outputs);
-        cuda_pull_array(l.weights_gpu, l.weight_updates, l.outputs*l.inputs);
+        hip_pull_array(l.biases_gpu, l.bias_updates, l.outputs);
+        hip_pull_array(l.weights_gpu, l.weight_updates, l.outputs*l.inputs);
     }
 }
 
 void push_weights(layer l)
 {
     if(l.type == CONVOLUTIONAL || l.type == DECONVOLUTIONAL){
-        cuda_push_array(l.biases_gpu, l.biases, l.n);
-        cuda_push_array(l.weights_gpu, l.weights, l.nweights);
-        if(l.scales) cuda_push_array(l.scales_gpu, l.scales, l.n);
+        hip_push_array(l.biases_gpu, l.biases, l.n);
+        hip_push_array(l.weights_gpu, l.weights, l.nweights);
+        if(l.scales) hip_push_array(l.scales_gpu, l.scales, l.n);
     } else if(l.type == CONNECTED){
-        cuda_push_array(l.biases_gpu, l.biases, l.outputs);
-        cuda_push_array(l.weights_gpu, l.weights, l.outputs*l.inputs);
+        hip_push_array(l.biases_gpu, l.biases, l.outputs);
+        hip_push_array(l.weights_gpu, l.weights, l.outputs*l.inputs);
     }
 }
 
 void distribute_weights(layer l, layer base)
 {
     if (l.type == CONVOLUTIONAL || l.type == DECONVOLUTIONAL) {
-        cuda_push_array(l.biases_gpu, base.biases, l.n);
-        cuda_push_array(l.weights_gpu, base.weights, l.nweights);
-        if (base.scales) cuda_push_array(l.scales_gpu, base.scales, l.n);
+        hip_push_array(l.biases_gpu, base.biases, l.n);
+        hip_push_array(l.weights_gpu, base.weights, l.nweights);
+        if (base.scales) hip_push_array(l.scales_gpu, base.scales, l.n);
     } else if (l.type == CONNECTED) {
-        cuda_push_array(l.biases_gpu, base.biases, l.outputs);
-        cuda_push_array(l.weights_gpu, base.weights, l.outputs*l.inputs);
+        hip_push_array(l.biases_gpu, base.biases, l.outputs);
+        hip_push_array(l.weights_gpu, base.weights, l.outputs*l.inputs);
     }
 }
 
@@ -945,24 +945,24 @@ void distribute_weights(layer l, layer base)
    void pull_updates(layer l)
    {
    if(l.type == CONVOLUTIONAL){
-   cuda_pull_array(l.bias_updates_gpu, l.bias_updates, l.n);
-   cuda_pull_array(l.weight_updates_gpu, l.weight_updates, l.nweights);
-   if(l.scale_updates) cuda_pull_array(l.scale_updates_gpu, l.scale_updates, l.n);
+   hip_pull_array(l.bias_updates_gpu, l.bias_updates, l.n);
+   hip_pull_array(l.weight_updates_gpu, l.weight_updates, l.nweights);
+   if(l.scale_updates) hip_pull_array(l.scale_updates_gpu, l.scale_updates, l.n);
    } else if(l.type == CONNECTED){
-   cuda_pull_array(l.bias_updates_gpu, l.bias_updates, l.outputs);
-   cuda_pull_array(l.weight_updates_gpu, l.weight_updates, l.outputs*l.inputs);
+   hip_pull_array(l.bias_updates_gpu, l.bias_updates, l.outputs);
+   hip_pull_array(l.weight_updates_gpu, l.weight_updates, l.outputs*l.inputs);
    }
    }
 
    void push_updates(layer l)
    {
    if(l.type == CONVOLUTIONAL){
-   cuda_push_array(l.bias_updates_gpu, l.bias_updates, l.n);
-   cuda_push_array(l.weight_updates_gpu, l.weight_updates, l.nweights);
-   if(l.scale_updates) cuda_push_array(l.scale_updates_gpu, l.scale_updates, l.n);
+   hip_push_array(l.bias_updates_gpu, l.bias_updates, l.n);
+   hip_push_array(l.weight_updates_gpu, l.weight_updates, l.nweights);
+   if(l.scale_updates) hip_push_array(l.scale_updates_gpu, l.scale_updates, l.n);
    } else if(l.type == CONNECTED){
-   cuda_push_array(l.bias_updates_gpu, l.bias_updates, l.outputs);
-   cuda_push_array(l.weight_updates_gpu, l.weight_updates, l.outputs*l.inputs);
+   hip_push_array(l.bias_updates_gpu, l.bias_updates, l.outputs);
+   hip_push_array(l.weight_updates_gpu, l.weight_updates, l.outputs*l.inputs);
    }
    }
 
@@ -992,12 +992,12 @@ void distribute_weights(layer l, layer base)
    void distribute_updates(layer l, layer base)
    {
    if(l.type == CONVOLUTIONAL || l.type == DECONVOLUTIONAL){
-   cuda_push_array(l.bias_updates_gpu, base.bias_updates, l.n);
-   cuda_push_array(l.weight_updates_gpu, base.weight_updates, l.nweights);
-   if(base.scale_updates) cuda_push_array(l.scale_updates_gpu, base.scale_updates, l.n);
+   hip_push_array(l.bias_updates_gpu, base.bias_updates, l.n);
+   hip_push_array(l.weight_updates_gpu, base.weight_updates, l.nweights);
+   if(base.scale_updates) hip_push_array(l.scale_updates_gpu, base.scale_updates, l.n);
    } else if(l.type == CONNECTED){
-   cuda_push_array(l.bias_updates_gpu, base.bias_updates, l.outputs);
-   cuda_push_array(l.weight_updates_gpu, base.weight_updates, l.outputs*l.inputs);
+   hip_push_array(l.bias_updates_gpu, base.bias_updates, l.outputs);
+   hip_push_array(l.weight_updates_gpu, base.weight_updates, l.outputs*l.inputs);
    }
    }
  */
@@ -1010,14 +1010,14 @@ void distribute_weights(layer l, layer base)
    layer base = net.layers[j];
    scale_weights(base, 0);
    for (i = 0; i < n; ++i) {
-   cuda_set_device(nets[i].gpu_index);
+   hip_set_device(nets[i].gpu_index);
    layer l = nets[i].layers[j];
    pull_weights(l);
    merge_weights(l, base);
    }
    scale_weights(base, 1./n);
    for (i = 0; i < n; ++i) {
-   cuda_set_device(nets[i].gpu_index);
+   hip_set_device(nets[i].gpu_index);
    layer l = nets[i].layers[j];
    distribute_weights(l, base);
    }
@@ -1031,14 +1031,14 @@ void sync_layer(network **nets, int n, int j)
     layer base = net->layers[j];
     scale_weights(base, 0);
     for (i = 0; i < n; ++i) {
-        cuda_set_device(nets[i]->gpu_index);
+        hip_set_device(nets[i]->gpu_index);
         layer l = nets[i]->layers[j];
         pull_weights(l);
         merge_weights(l, base);
     }
     scale_weights(base, 1./n);
     for (i = 0; i < n; ++i) {
-        cuda_set_device(nets[i]->gpu_index);
+        hip_set_device(nets[i]->gpu_index);
         layer l = nets[i]->layers[j];
         distribute_weights(l, base);
     }
@@ -1107,14 +1107,14 @@ float train_networks(network **nets, int n, data d, int interval)
         //printf("%f\n", errors[i]);
         sum += errors[i];
     }
-    //cudaDeviceSynchronize();
+    //hipDeviceSynchronize();
     if (get_current_batch(nets[0]) % interval == 0) {
         printf("Syncing... ");
         fflush(stdout);
         sync_nets(nets, n, interval);
         printf("Done!\n");
     }
-    //cudaDeviceSynchronize();
+    //hipDeviceSynchronize();
     free(threads);
     free(errors);
     return (float)sum/(n);
@@ -1123,7 +1123,7 @@ float train_networks(network **nets, int n, data d, int interval)
 void pull_network_output(network *net)
 {
     layer l = get_network_output_layer(net);
-    cuda_pull_array(l.output_gpu, l.output, l.outputs*l.batch);
+    hip_pull_array(l.output_gpu, l.output, l.outputs*l.batch);
 }
 
 #endif

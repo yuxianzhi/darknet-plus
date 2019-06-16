@@ -4,7 +4,7 @@
 
 list *make_list()
 {
-	list *l = malloc(sizeof(list));
+	list *l = (list *)malloc(sizeof(list));
 	l->size = 0;
 	l->front = 0;
 	l->back = 0;
@@ -39,18 +39,18 @@ void *list_pop(list *l){
 
 void list_insert(list *l, void *val)
 {
-	node *new = malloc(sizeof(node));
-	new->val = val;
-	new->next = 0;
+	node *new_node = (node *)malloc(sizeof(node));
+	new_node->val = val;
+	new_node->next = 0;
 
 	if(!l->back){
-		l->front = new;
-		new->prev = 0;
+		l->front = new_node;
+		new_node->prev = 0;
 	}else{
-		l->back->next = new;
-		new->prev = l->back;
+		l->back->next = new_node;
+		new_node->prev = l->back;
 	}
-	l->back = new;
+	l->back = new_node;
 	++l->size;
 }
 
@@ -81,7 +81,7 @@ void free_list_contents(list *l)
 
 void **list_to_array(list *l)
 {
-    void **a = calloc(l->size, sizeof(void*));
+    void **a = (void **)calloc(l->size, sizeof(void*));
     int count = 0;
     node *n = l->front;
     while(n){

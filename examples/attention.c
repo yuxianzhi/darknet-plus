@@ -7,7 +7,7 @@ void extend_data_truth(data *d, int n, float val)
 {
     int i, j;
     for(i = 0; i < d->y.rows; ++i){
-        d->y.vals[i] = realloc(d->y.vals[i], (d->y.cols+n)*sizeof(float));
+        d->y.vals[i] = (float *)realloc(d->y.vals[i], (d->y.cols+n)*sizeof(float));
         for(j = 0; j < n; ++j){
             d->y.vals[i][d->y.cols + j] = val;
         }
@@ -20,8 +20,8 @@ matrix network_loss_data(network *net, data test)
     int i,b;
     int k = 1;
     matrix pred = make_matrix(test.X.rows, k);
-    float *X = calloc(net->batch*test.X.cols, sizeof(float));
-    float *y = calloc(net->batch*test.y.cols, sizeof(float));
+    float *X = (float *)calloc(net->batch*test.X.cols, sizeof(float));
+    float *y = (float *)calloc(net->batch*test.y.cols, sizeof(float));
     for(i = 0; i < test.X.rows; i += net->batch){
         for(b = 0; b < net->batch; ++b){
             if(i+b == test.X.rows) break;
@@ -60,14 +60,14 @@ void train_attention(char *datacfg, char *cfgfile, char *weightfile, int *gpus, 
     char *base = basecfg(cfgfile);
     printf("%s\n", base);
     printf("%d\n", ngpus);
-    network **nets = calloc(ngpus, sizeof(network*));
+    network **nets = (network **)calloc(ngpus, sizeof(network*));
 
     srand(time(0));
     int seed = rand();
     for(i = 0; i < ngpus; ++i){
         srand(seed);
 #ifdef GPU
-        cuda_set_device(gpus[i]);
+        hip_set_device(gpus[i]);
 #endif
         nets[i] = load_network(cfgfile, weightfile, clear);
         nets[i]->learning_rate *= ngpus;
@@ -95,7 +95,7 @@ void train_attention(char *datacfg, char *cfgfile, char *weightfile, int *gpus, 
     int divs=3;
     int size=2;
 
-    load_args args = {0};
+    load_args args;
     args.w = divs*net->w/size;
     args.h = divs*net->h/size;
     args.size = divs*net->w/size;
@@ -152,7 +152,7 @@ void train_attention(char *datacfg, char *cfgfile, char *weightfile, int *gpus, 
                 free_matrix(deltas);
             }
         }
-        int *inds = calloc(resized.y.rows, sizeof(int));
+        int *inds = (int *)calloc(resized.y.rows, sizeof(int));
         for(z = 0; z < resized.y.rows; ++z){
             int index = max_index(resized.y.vals[z] + train.y.cols, divs*divs);
             inds[z] = index;
@@ -255,12 +255,12 @@ void validate_attention_single(char *datacfg, char *filename, char *weightfile)
 
     float avg_acc = 0;
     float avg_topk = 0;
-    int *indexes = calloc(topk, sizeof(int));
+    int *indexes = (int *)calloc(topk, sizeof(int));
     int divs = 4;
     int size = 2;
     int extra = 0;
-    float *avgs = calloc(classes, sizeof(float));
-    int *inds = calloc(divs*divs, sizeof(int));
+    float *avgs = (float *)calloc(classes, sizeof(float));
+    int *inds = (int *)calloc(divs*divs, sizeof(int));
 
     for(i = 0; i < m; ++i){
         int class = -1;
@@ -343,7 +343,7 @@ void validate_attention_multi(char *datacfg, char *filename, char *weightfile)
 
     float avg_acc = 0;
     float avg_topk = 0;
-    int *indexes = calloc(topk, sizeof(int));
+    int *indexes = (int *)calloc(topk, sizeof(int));
 
     for(i = 0; i < m; ++i){
         int class = -1;
@@ -354,7 +354,7 @@ void validate_attention_multi(char *datacfg, char *filename, char *weightfile)
                 break;
             }
         }
-        float *pred = calloc(classes, sizeof(float));
+        float *pred = (float *)calloc(classes, sizeof(float));
         image im = load_image_color(paths[i], 0, 0);
         for(j = 0; j < nscales; ++j){
             image r = resize_min(im, scales[j]);
@@ -394,7 +394,7 @@ void predict_attention(char *datacfg, char *cfgfile, char *weightfile, char *fil
     int i = 0;
     char **names = get_labels(name_list);
     clock_t time;
-    int *indexes = calloc(top, sizeof(int));
+    int *indexes = (int *)calloc(top, sizeof(int));
     char buff[256];
     char *input = buff;
     while(1){

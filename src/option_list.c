@@ -34,7 +34,7 @@ list *read_data_cfg(char *filename)
 
 metadata get_metadata(char *file)
 {
-    metadata m = {0};
+    metadata m;
     list *options = read_data_cfg(file);
 
     char *name_list = option_find_str(options, "names", 0);
@@ -69,7 +69,7 @@ int read_option(char *s, list *options)
 
 void option_insert(list *l, char *key, char *val)
 {
-    kvp *p = malloc(sizeof(kvp));
+    kvp *p = (kvp *)malloc(sizeof(kvp));
     p->key = key;
     p->val = val;
     p->used = 0;

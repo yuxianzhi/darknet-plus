@@ -8,7 +8,7 @@ void free_layer(layer l)
     if(l.type == DROPOUT){
         if(l.rand)           free(l.rand);
 #ifdef GPU
-        if(l.rand_gpu)             cuda_free(l.rand_gpu);
+        if(l.rand_gpu)             hip_free(l.rand_gpu);
 #endif
         return;
     }
@@ -54,44 +54,44 @@ void free_layer(layer l)
     if(l.binary_input)       free(l.binary_input);
 
 #ifdef GPU
-    if(l.indexes_gpu)           cuda_free((float *)l.indexes_gpu);
+    if(l.indexes_gpu)           hip_free((float *)l.indexes_gpu);
 
-    if(l.z_gpu)                   cuda_free(l.z_gpu);
-    if(l.r_gpu)                   cuda_free(l.r_gpu);
-    if(l.h_gpu)                   cuda_free(l.h_gpu);
-    if(l.m_gpu)                   cuda_free(l.m_gpu);
-    if(l.v_gpu)                   cuda_free(l.v_gpu);
-    if(l.prev_state_gpu)          cuda_free(l.prev_state_gpu);
-    if(l.forgot_state_gpu)        cuda_free(l.forgot_state_gpu);
-    if(l.forgot_delta_gpu)        cuda_free(l.forgot_delta_gpu);
-    if(l.state_gpu)               cuda_free(l.state_gpu);
-    if(l.state_delta_gpu)         cuda_free(l.state_delta_gpu);
-    if(l.gate_gpu)                cuda_free(l.gate_gpu);
-    if(l.gate_delta_gpu)          cuda_free(l.gate_delta_gpu);
-    if(l.save_gpu)                cuda_free(l.save_gpu);
-    if(l.save_delta_gpu)          cuda_free(l.save_delta_gpu);
-    if(l.concat_gpu)              cuda_free(l.concat_gpu);
-    if(l.concat_delta_gpu)        cuda_free(l.concat_delta_gpu);
-    if(l.binary_input_gpu)        cuda_free(l.binary_input_gpu);
-    if(l.binary_weights_gpu)      cuda_free(l.binary_weights_gpu);
-    if(l.mean_gpu)                cuda_free(l.mean_gpu);
-    if(l.variance_gpu)            cuda_free(l.variance_gpu);
-    if(l.rolling_mean_gpu)        cuda_free(l.rolling_mean_gpu);
-    if(l.rolling_variance_gpu)    cuda_free(l.rolling_variance_gpu);
-    if(l.variance_delta_gpu)      cuda_free(l.variance_delta_gpu);
-    if(l.mean_delta_gpu)          cuda_free(l.mean_delta_gpu);
-    if(l.x_gpu)                   cuda_free(l.x_gpu);
-    if(l.x_norm_gpu)              cuda_free(l.x_norm_gpu);
-    if(l.weights_gpu)             cuda_free(l.weights_gpu);
-    if(l.weight_updates_gpu)      cuda_free(l.weight_updates_gpu);
-    if(l.biases_gpu)              cuda_free(l.biases_gpu);
-    if(l.bias_updates_gpu)        cuda_free(l.bias_updates_gpu);
-    if(l.scales_gpu)              cuda_free(l.scales_gpu);
-    if(l.scale_updates_gpu)       cuda_free(l.scale_updates_gpu);
-    if(l.output_gpu)              cuda_free(l.output_gpu);
-    if(l.delta_gpu)               cuda_free(l.delta_gpu);
-    if(l.rand_gpu)                cuda_free(l.rand_gpu);
-    if(l.squared_gpu)             cuda_free(l.squared_gpu);
-    if(l.norms_gpu)               cuda_free(l.norms_gpu);
+    if(l.z_gpu)                   hip_free(l.z_gpu);
+    if(l.r_gpu)                   hip_free(l.r_gpu);
+    if(l.h_gpu)                   hip_free(l.h_gpu);
+    if(l.m_gpu)                   hip_free(l.m_gpu);
+    if(l.v_gpu)                   hip_free(l.v_gpu);
+    if(l.prev_state_gpu)          hip_free(l.prev_state_gpu);
+    if(l.forgot_state_gpu)        hip_free(l.forgot_state_gpu);
+    if(l.forgot_delta_gpu)        hip_free(l.forgot_delta_gpu);
+    if(l.state_gpu)               hip_free(l.state_gpu);
+    if(l.state_delta_gpu)         hip_free(l.state_delta_gpu);
+    if(l.gate_gpu)                hip_free(l.gate_gpu);
+    if(l.gate_delta_gpu)          hip_free(l.gate_delta_gpu);
+    if(l.save_gpu)                hip_free(l.save_gpu);
+    if(l.save_delta_gpu)          hip_free(l.save_delta_gpu);
+    if(l.concat_gpu)              hip_free(l.concat_gpu);
+    if(l.concat_delta_gpu)        hip_free(l.concat_delta_gpu);
+    if(l.binary_input_gpu)        hip_free(l.binary_input_gpu);
+    if(l.binary_weights_gpu)      hip_free(l.binary_weights_gpu);
+    if(l.mean_gpu)                hip_free(l.mean_gpu);
+    if(l.variance_gpu)            hip_free(l.variance_gpu);
+    if(l.rolling_mean_gpu)        hip_free(l.rolling_mean_gpu);
+    if(l.rolling_variance_gpu)    hip_free(l.rolling_variance_gpu);
+    if(l.variance_delta_gpu)      hip_free(l.variance_delta_gpu);
+    if(l.mean_delta_gpu)          hip_free(l.mean_delta_gpu);
+    if(l.x_gpu)                   hip_free(l.x_gpu);
+    if(l.x_norm_gpu)              hip_free(l.x_norm_gpu);
+    if(l.weights_gpu)             hip_free(l.weights_gpu);
+    if(l.weight_updates_gpu)      hip_free(l.weight_updates_gpu);
+    if(l.biases_gpu)              hip_free(l.biases_gpu);
+    if(l.bias_updates_gpu)        hip_free(l.bias_updates_gpu);
+    if(l.scales_gpu)              hip_free(l.scales_gpu);
+    if(l.scale_updates_gpu)       hip_free(l.scale_updates_gpu);
+    if(l.output_gpu)              hip_free(l.output_gpu);
+    if(l.delta_gpu)               hip_free(l.delta_gpu);
+    if(l.rand_gpu)                hip_free(l.rand_gpu);
+    if(l.squared_gpu)             hip_free(l.squared_gpu);
+    if(l.norms_gpu)               hip_free(l.norms_gpu);
 #endif
 }

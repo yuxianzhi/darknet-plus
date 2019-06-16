@@ -19,7 +19,7 @@ void train_super(char *cfgfile, char *weightfile, int clear)
     //int N = plist->size;
     char **paths = (char **)list_to_array(plist);
 
-    load_args args = {0};
+    load_args args;
     args.w = net->w;
     args.h = net->h;
     args.scale = 4;

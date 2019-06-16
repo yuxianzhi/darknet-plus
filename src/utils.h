@@ -15,8 +15,8 @@
 #define TWO_PI 6.2831853071795864769252866f
 
 double what_time_is_it_now();
-void shuffle(void *arr, size_t n, size_t size);
-void sorta_shuffle(void *arr, size_t n, size_t size, size_t sections);
+void shuffle(char *arr, size_t n, size_t size);
+void sorta_shuffle(char *arr, size_t n, size_t size, size_t sections);
 void free_ptrs(void **ptrs, int n);
 int alphanum_to_int(char c);
 char int_to_alphanum(int i);

@@ -30,26 +30,26 @@ layer make_rnn_layer(int batch, int inputs, int outputs, int steps, ACTIVATION a
 {
     fprintf(stderr, "RNN Layer: %d inputs, %d outputs\n", inputs, outputs);
     batch = batch / steps;
-    layer l = {0};
+    layer l;
     l.batch = batch;
     l.type = RNN;
     l.steps = steps;
     l.inputs = inputs;
 
-    l.state = calloc(batch*outputs, sizeof(float));
-    l.prev_state = calloc(batch*outputs, sizeof(float));
+    l.state = (float *)calloc(batch*outputs, sizeof(float));
+    l.prev_state = (float *)calloc(batch*outputs, sizeof(float));
 
-    l.input_layer = malloc(sizeof(layer));
+    l.input_layer = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.input_layer) = make_connected_layer(batch*steps, inputs, outputs, activation, batch_normalize, adam);
     l.input_layer->batch = batch;
 
-    l.self_layer = malloc(sizeof(layer));
+    l.self_layer = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.self_layer) = make_connected_layer(batch*steps, outputs, outputs, activation, batch_normalize, adam);
     l.self_layer->batch = batch;
 
-    l.output_layer = malloc(sizeof(layer));
+    l.output_layer = (layer *)malloc(sizeof(layer));
     fprintf(stderr, "\t\t");
     *(l.output_layer) = make_connected_layer(batch*steps, outputs, outputs, activation, batch_normalize, adam);
     l.output_layer->batch = batch;
@@ -65,8 +65,8 @@ layer make_rnn_layer(int batch, int inputs, int outputs, int steps, ACTIVATION a
     l.forward_gpu = forward_rnn_layer_gpu;
     l.backward_gpu = backward_rnn_layer_gpu;
     l.update_gpu = update_rnn_layer_gpu;
-    l.state_gpu = cuda_make_array(0, batch*outputs);
-    l.prev_state_gpu = cuda_make_array(0, batch*outputs);
+    l.state_gpu = hip_make_array(0, batch*outputs);
+    l.prev_state_gpu = hip_make_array(0, batch*outputs);
     l.output_gpu = l.output_layer->output_gpu;
     l.delta_gpu = l.output_layer->delta_gpu;
 #ifdef CUDNN
@@ -202,7 +202,7 @@ void update_rnn_layer_gpu(layer l, update_args a)
 
 void forward_rnn_layer_gpu(layer l, network net)
 {
-    network s = {0};
+    network s;
     s.train = net.train;
     int i;
     layer input_layer = *(l.input_layer);
@@ -241,7 +241,7 @@ void forward_rnn_layer_gpu(layer l, network net)
 
 void backward_rnn_layer_gpu(layer l, network net)
 {
-    network s = {0};
+    network s;
     s.train = net.train;
     int i;
     layer input_layer = *(l.input_layer);

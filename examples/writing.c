@@ -22,7 +22,7 @@ void train_writing(char *cfgfile, char *weightfile)
 
     data train, buffer;
 
-    load_args args = {0};
+    load_args args;
     args.w = net.w;
     args.h = net.h;
     args.out_w = out.w;

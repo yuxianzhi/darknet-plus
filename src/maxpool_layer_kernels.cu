@@ -1,11 +1,9 @@
-#include "cuda_runtime.h"
-#include "curand.h"
-#include "cublas_v2.h"
+#include <hip/hip_runtime.h>
+#include "rocrand/rocrand.h"
+#include "rocblas.h"
 
-extern "C" {
 #include "maxpool_layer.h"
 #include "cuda.h"
-}
 
 __global__ void forward_maxpool_layer_kernel(int n, int in_h, int in_w, int in_c, int stride, int size, int pad, float *input, float *output, int *indexes)
 {
@@ -84,7 +82,7 @@ __global__ void backward_maxpool_layer_kernel(int n, int in_h, int in_w, int in_
     prev_delta[index] += d;
 }
 
-extern "C" void forward_maxpool_layer_gpu(maxpool_layer layer, network net)
+FUNC_OP void forward_maxpool_layer_gpu(maxpool_layer layer, network net)
 {
     int h = layer.out_h;
     int w = layer.out_w;
@@ -92,15 +90,15 @@ extern "C" void forward_maxpool_layer_gpu(maxpool_layer layer, network net)
 
     size_t n = h*w*c*layer.batch;
 
-    forward_maxpool_layer_kernel<<<cuda_gridsize(n), BLOCK>>>(n, layer.h, layer.w, layer.c, layer.stride, layer.size, layer.pad, net.input_gpu, layer.output_gpu, layer.indexes_gpu);
-    check_error(cudaPeekAtLastError());
+    hipLaunchKernelGGL((forward_maxpool_layer_kernel), dim3(hip_gridsize(n)), dim3(BLOCK), 0, 0, n, layer.h, layer.w, layer.c, layer.stride, layer.size, layer.pad, net.input_gpu, layer.output_gpu, layer.indexes_gpu);
+    check_error(hipPeekAtLastError());
 }
 
-extern "C" void backward_maxpool_layer_gpu(maxpool_layer layer, network net)
+FUNC_OP void backward_maxpool_layer_gpu(maxpool_layer layer, network net)
 {
     size_t n = layer.h*layer.w*layer.c*layer.batch;
 
-    backward_maxpool_layer_kernel<<<cuda_gridsize(n), BLOCK>>>(n, layer.h, layer.w, layer.c, layer.stride, layer.size, layer.pad, layer.delta_gpu, net.delta_gpu, layer.indexes_gpu);
-    check_error(cudaPeekAtLastError());
+    hipLaunchKernelGGL((backward_maxpool_layer_kernel), dim3(hip_gridsize(n)), dim3(BLOCK), 0, 0, n, layer.h, layer.w, layer.c, layer.stride, layer.size, layer.pad, layer.delta_gpu, net.delta_gpu, layer.indexes_gpu);
+    check_error(hipPeekAtLastError());
 }
 
