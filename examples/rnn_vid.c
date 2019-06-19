@@ -8,8 +8,8 @@ void reconstruct_picture(network net, float *features, image recon, image update
 
 
 typedef struct {
-    float *x;
-    float *y;
+    float *x = NULL;
+    float *y = NULL;
 } float_pair;
 
 float_pair get_rnn_vid_data(network net, char **files, int n, int batch, int steps)

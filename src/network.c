@@ -849,9 +849,9 @@ void harmless_update_network_gpu(network *netp)
 }
 
 typedef struct {
-    network *net;
+    network *net = NULL;
     data d;
-    float *err;
+    float *err = NULL;
 } train_args;
 
 void *train_thread(void *ptr)
@@ -1045,9 +1045,9 @@ void sync_layer(network **nets, int n, int j)
 }
 
 typedef struct{
-    network **nets;
-    int n;
-    int j;
+    network **nets = NULL;
+    int n = 0;
+    int j = 0;
 } sync_args;
 
 void *sync_layer_thread(void *ptr)

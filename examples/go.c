@@ -11,8 +11,8 @@ int legal_go(float *b, float *ko, int p, int r, int c);
 int check_ko(float *x, float *ko);
 
 typedef struct {
-    char **data;
-    int n;
+    char **data = NULL;
+    int n = 0;
 } moves;
 
 char *fgetgo(FILE *fp)
@@ -360,17 +360,17 @@ int compare_board(float *a, float *b)
 }
 
 typedef struct mcts_tree{
-    float *board;
-    struct mcts_tree **children;
-    float *prior;
-    int *visit_count;
-    float *value;
-    float *mean;
-    float *prob;
-    int total_count;
-    float result;
-    int done;
-    int pass;
+    float *board = NULL;
+    struct mcts_tree **children = NULL;
+    float *prior = NULL;
+    int *visit_count = NULL;
+    float *value = NULL;
+    float *mean = NULL;
+    float *prob = NULL;
+    int total_count = 0;
+    float result = 0;
+    int done = 0;
+    int pass = 0;
 } mcts_tree;
 
 void free_mcts(mcts_tree *root)

@@ -116,12 +116,12 @@ struct layer{
     LAYER_TYPE type;
     ACTIVATION activation;
     COST_TYPE cost_type;
-    void (*forward)   (struct layer, struct network);
-    void (*backward)  (struct layer, struct network);
-    void (*update)    (struct layer, update_args);
-    void (*forward_gpu)   (struct layer, struct network);
-    void (*backward_gpu)  (struct layer, struct network);
-    void (*update_gpu)    (struct layer, update_args);
+    void (*forward)   (struct layer, struct network) = NULL;
+    void (*backward)  (struct layer, struct network) = NULL;
+    void (*update)    (struct layer, update_args) = NULL;
+    void (*forward_gpu)   (struct layer, struct network) = NULL;
+    void (*backward_gpu)  (struct layer, struct network) = NULL;
+    void (*update_gpu)    (struct layer, update_args) = NULL;
     int batch_normalize = 0;
     int shortcut = 0;
     int batch = 0;
